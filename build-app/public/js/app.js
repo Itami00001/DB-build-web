@@ -1625,10 +1625,9 @@ function displayLogs(logs) {
                 <div class="card-body">
                     <div id="terminalContainer">
                         <div id="terminalOutput" class="terminal-output mb-3"></div>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="text" id="terminalInput" class="form-control" placeholder="Введите команду..." autocomplete="off">
-                        </div>
+                        <button class="btn btn-outline-primary" onclick="loadTerminalEvents()">
+                            <i class="fas fa-sync-alt"></i> Обновить Терминал
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1638,8 +1637,10 @@ function displayLogs(logs) {
     html += '</div>';
     container.innerHTML = html;
     
-    // Настраиваем терминал
-    setupTerminal();
+    // Настраиваем терминал с задержкой для гарантии загрузки DOM
+    setTimeout(() => {
+        setupTerminal();
+    }, 100);
 }
 
 function getLogLevelClass(level) {
@@ -1653,45 +1654,28 @@ function getLogLevelClass(level) {
 }
 
 function setupTerminal() {
-    const terminal = document.getElementById('terminal');
-    const input = document.getElementById('terminalInput');
     const output = document.getElementById('terminalOutput');
     
-    if (!terminal || !input || !output) return;
+    console.log('Настройка терминала...');
+    console.log('output:', output);
+    
+    if (!output) {
+        console.error('Элемент terminalOutput не найден!');
+        return;
+    }
     
     // Загружаем начальные события терминала
+    console.log('Загрузка начальных событий терминала...');
     loadTerminalEvents();
     
-    // Устанавливаем автообновление каждые 2 секунды
-    setInterval(loadTerminalEvents, 2000);
-    
-    input.addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter') {
-            const command = input.value.trim();
-            if (!command) return;
-            
-            try {
-                const response = await apiRequest('/admin/terminal', 'POST', { command });
-                
-                if (response.success) {
-                    // Команда уже добавлена на сервере, просто перезагружаем события
-                    setTimeout(loadTerminalEvents, 100);
-                } else {
-                    // Ошибка выполнения команды
-                    setTimeout(loadTerminalEvents, 100);
-                }
-            } catch (error) {
-                console.error('Ошибка выполнения команды:', error);
-            }
-            
-            input.value = '';
-        }
-    });
+    console.log('Терминал настроен успешно');
 }
 
 async function loadTerminalEvents() {
     try {
+        console.log('Загрузка событий терминала...');
         const events = await apiRequest('/admin/terminal/events', 'GET');
+        console.log('Получены события:', events);
         displayTerminalEvents(events);
     } catch (error) {
         console.error('Ошибка загрузки событий терминала:', error);
@@ -1700,34 +1684,52 @@ async function loadTerminalEvents() {
 
 function displayTerminalEvents(events) {
     const output = document.getElementById('terminalOutput');
-    if (!output) return;
+    console.log('Отображение событий терминала...');
+    console.log('output элемент:', output);
+    console.log('events:', events);
+    
+    if (!output) {
+        console.error('Элемент terminalOutput не найден!');
+        return;
+    }
     
     let html = '';
     
-    events.forEach(event => {
-        const time = new Date(event.timestamp).toLocaleTimeString('ru-RU');
-        const typeClass = getTerminalTypeClass(event.type);
-        
-        if (event.message.startsWith('$ ')) {
-            // Команда пользователя
-            html += `<div class="terminal-line">
-                <span class="terminal-time">[${time}]</span>
-                <span class="terminal-prompt">$</span>
-                <span class="terminal-command">${event.message.substring(2)}</span>
-            </div>`;
-        } else {
-            // Системное событие
-            const icon = getTerminalIcon(event.type);
-            html += `<div class="terminal-event ${typeClass}">
-                <span class="terminal-time">[${time}]</span>
-                <span class="terminal-icon">${icon}</span>
-                <span class="terminal-message">${event.message}</span>
-            </div>`;
-        }
-    });
+    // Если нет событий, добавляем тестовое сообщение
+    if (!events || events.length === 0) {
+        html += `<div class="terminal-event terminal-info">
+            <span class="terminal-time">[${new Date().toLocaleTimeString('ru-RU')}]</span>
+            <span class="terminal-icon">ℹ️</span>
+            <span class="terminal-message">Терминал инициализирован. Ожидание событий...</span>
+        </div>`;
+    } else {
+        events.forEach(event => {
+            const time = new Date(event.timestamp).toLocaleTimeString('ru-RU');
+            const typeClass = getTerminalTypeClass(event.type);
+            
+            if (event.message.startsWith('$ ')) {
+                // Команда пользователя
+                html += `<div class="terminal-line">
+                    <span class="terminal-time">[${time}]</span>
+                    <span class="terminal-prompt">$</span>
+                    <span class="terminal-command">${event.message.substring(2)}</span>
+                </div>`;
+            } else {
+                // Системное событие
+                const icon = getTerminalIcon(event.type);
+                html += `<div class="terminal-event ${typeClass}">
+                    <span class="terminal-time">[${time}]</span>
+                    <span class="terminal-icon">${icon}</span>
+                    <span class="terminal-message">${event.message}</span>
+                </div>`;
+            }
+        });
+    }
     
+    console.log('Сгенерированный HTML:', html);
     output.innerHTML = html;
     output.scrollTop = output.scrollHeight;
+    console.log('События терминала отображены');
 }
 
 function getTerminalTypeClass(type) {
