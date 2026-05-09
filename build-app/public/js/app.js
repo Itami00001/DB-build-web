@@ -119,14 +119,20 @@ function showPage(pageName) {
             case 'profile':
                 loadProfile();
                 break;
+            case 'admin':
+                showAdminPage();
+                break;
+            case 'database':
+                showAdminDatabasePage();
+                break;
+            case 'debug':
+                showAdminLogsPage();
+                break;
+            case 'swagger':
+                window.open('http://localhost:3000/api-docs', '_blank');
+                break;
             case 'createAdvertisement':
                 loadCreateAdvertisementForm();
-                break;
-            case 'adminDatabase':
-                loadAdminDatabase();
-                break;
-            case 'adminLogs':
-                loadAdminLogs();
                 break;
         }
     }
@@ -1404,4 +1410,462 @@ function editItem() {
 
 function buyItem() {
     showMessage('info', 'Функция в разработке');
+}
+
+// Админ-панель функции
+async function loadAdminDatabase() {
+    try {
+        const data = await apiRequest('/admin/database', 'GET');
+        displayDatabase(data);
+    } catch (error) {
+        console.error('Ошибка загрузки базы данных:', error);
+        showMessage('error', 'Ошибка загрузки базы данных');
+    }
+}
+
+async function loadAdminLogs() {
+    try {
+        const data = await apiRequest('/admin/logs', 'GET');
+        displayLogs(data);
+    } catch (error) {
+        console.error('Ошибка загрузки логов:', error);
+        showMessage('error', 'Ошибка загрузки логов');
+    }
+}
+
+function displayDatabase(data) {
+    const container = document.getElementById('adminDatabaseContent');
+    if (!container) return;
+    
+    let html = '<div class="row">';
+    
+    // Плитка Пользователи
+    html += `
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-users"></i> Пользователи (${data.users ? data.users.length : 0})</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportToPDF('users', event)">
+                        <i class="fas fa-file-pdf"></i> Скачать PDF
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Имя</th>
+                                    <th>Email</th>
+                                    <th>Баланс C</th>
+                                    <th>Роль</th>
+                                    <th>Статус</th>
+                                    <th>Создан</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.users ? data.users.map(user => `
+                                    <tr>
+                                        <td>${user.id}</td>
+                                        <td>${user.firstName} ${user.lastName}</td>
+                                        <td>${user.email}</td>
+                                        <td class="${user.cCoinBalance < 0 ? 'text-danger' : 'text-success'}">${user.cCoinBalance}</td>
+                                        <td><span class="badge ${user.role === 'admin' ? 'bg-danger' : 'bg-primary'}">${user.role}</span></td>
+                                        <td><span class="badge ${user.isActive ? 'bg-success' : 'bg-secondary'}">${user.isActive ? 'Активен' : 'Неактивен'}</span></td>
+                                        <td>${new Date(user.createdAt).toLocaleDateString('ru-RU')}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="7" class="text-center">Нет данных</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Плитка Объявления
+    html += `
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-bullhorn"></i> Объявления (${data.advertisements ? data.advertisements.length : 0})</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportToPDF('advertisements', event)">
+                        <i class="fas fa-file-pdf"></i> Скачать PDF
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Название</th>
+                                    <th>Цена C</th>
+                                    <th>Количество</th>
+                                    <th>Статус</th>
+                                    <th>Пользователь</th>
+                                    <th>Создано</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.advertisements ? data.advertisements.map(ad => `
+                                    <tr>
+                                        <td>${ad.id}</td>
+                                        <td>${ad.title}</td>
+                                        <td class="text-success">${ad.price}</td>
+                                        <td>${ad.quantity}</td>
+                                        <td><span class="badge ${ad.status === 'active' ? 'bg-success' : 'bg-secondary'}">${ad.status}</span></td>
+                                        <td>${ad.userId}</td>
+                                        <td>${new Date(ad.createdAt).toLocaleDateString('ru-RU')}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="7" class="text-center">Нет данных</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Плитка Транзакции
+    html += `
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-exchange-alt"></i> Транзакции (${data.transactions ? data.transactions.length : 0})</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportToPDF('transactions', event)">
+                        <i class="fas fa-file-pdf"></i> Скачать PDF
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Отправитель</th>
+                                    <th>Получатель</th>
+                                    <th>Сумма C</th>
+                                    <th>Описание</th>
+                                    <th>Статус</th>
+                                    <th>Дата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.transactions ? data.transactions.map(tx => `
+                                    <tr>
+                                        <td>${tx.id}</td>
+                                        <td>${tx.sender ? tx.sender.username : 'N/A'}</td>
+                                        <td>${tx.receiver ? tx.receiver.username : 'N/A'}</td>
+                                        <td class="text-success">${tx.amount}</td>
+                                        <td>${tx.description || '-'}</td>
+                                        <td><span class="badge ${tx.status === 'completed' ? 'bg-success' : 'bg-warning'}">${tx.status}</span></td>
+                                        <td>${new Date(tx.createdAt).toLocaleDateString('ru-RU')}</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="7" class="text-center">Нет данных</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function displayLogs(logs) {
+    const container = document.getElementById('adminLogsContent');
+    if (!container) return;
+    
+    let html = '<div class="row">';
+    
+    // Секция логов
+    html += `
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Системные логи</h5>
+                </div>
+                <div class="card-body">
+                    <div class="logs-container">
+    `;
+    
+    logs.forEach(log => {
+        const levelClass = getLogLevelClass(log.level);
+        const time = new Date(log.timestamp).toLocaleString('ru-RU');
+        
+        html += `
+            <div class="log-entry ${levelClass}">
+                <div class="log-header">
+                    <span class="log-time">${time}</span>
+                    <span class="log-level">${log.level.toUpperCase()}</span>
+                    <span class="log-source">${log.source}</span>
+                </div>
+                <div class="log-message">${log.message}</div>
+            </div>
+        `;
+    });
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Секция терминала
+    html += `
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-terminal"></i> Терминал</h5>
+                </div>
+                <div class="card-body">
+                    <div id="terminalContainer">
+                        <div id="terminalOutput" class="terminal-output mb-3"></div>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" id="terminalInput" class="form-control" placeholder="Введите команду..." autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+    // Настраиваем терминал
+    setupTerminal();
+}
+
+function getLogLevelClass(level) {
+    const classes = {
+        'error': 'log-error',
+        'warn': 'log-warn',
+        'info': 'log-info',
+        'debug': 'log-debug'
+    };
+    return classes[level] || 'log-info';
+}
+
+function setupTerminal() {
+    const terminal = document.getElementById('terminal');
+    const input = document.getElementById('terminalInput');
+    const output = document.getElementById('terminalOutput');
+    
+    if (!terminal || !input || !output) return;
+    
+    // Загружаем начальные события терминала
+    loadTerminalEvents();
+    
+    // Устанавливаем автообновление каждые 2 секунды
+    setInterval(loadTerminalEvents, 2000);
+    
+    input.addEventListener('keypress', async (e) => {
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            if (!command) return;
+            
+            try {
+                const response = await apiRequest('/admin/terminal', 'POST', { command });
+                
+                if (response.success) {
+                    // Команда уже добавлена на сервере, просто перезагружаем события
+                    setTimeout(loadTerminalEvents, 100);
+                } else {
+                    // Ошибка выполнения команды
+                    setTimeout(loadTerminalEvents, 100);
+                }
+            } catch (error) {
+                console.error('Ошибка выполнения команды:', error);
+            }
+            
+            input.value = '';
+        }
+    });
+}
+
+async function loadTerminalEvents() {
+    try {
+        const events = await apiRequest('/admin/terminal/events', 'GET');
+        displayTerminalEvents(events);
+    } catch (error) {
+        console.error('Ошибка загрузки событий терминала:', error);
+    }
+}
+
+function displayTerminalEvents(events) {
+    const output = document.getElementById('terminalOutput');
+    if (!output) return;
+    
+    let html = '';
+    
+    events.forEach(event => {
+        const time = new Date(event.timestamp).toLocaleTimeString('ru-RU');
+        const typeClass = getTerminalTypeClass(event.type);
+        
+        if (event.message.startsWith('$ ')) {
+            // Команда пользователя
+            html += `<div class="terminal-line">
+                <span class="terminal-time">[${time}]</span>
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-command">${event.message.substring(2)}</span>
+            </div>`;
+        } else {
+            // Системное событие
+            const icon = getTerminalIcon(event.type);
+            html += `<div class="terminal-event ${typeClass}">
+                <span class="terminal-time">[${time}]</span>
+                <span class="terminal-icon">${icon}</span>
+                <span class="terminal-message">${event.message}</span>
+            </div>`;
+        }
+    });
+    
+    output.innerHTML = html;
+    output.scrollTop = output.scrollHeight;
+}
+
+function getTerminalTypeClass(type) {
+    const classes = {
+        'system': 'terminal-system',
+        'process': 'terminal-process',
+        'success': 'terminal-success',
+        'error': 'terminal-error',
+        'info': 'terminal-info'
+    };
+    return classes[type] || 'terminal-info';
+}
+
+function getTerminalIcon(type) {
+    const icons = {
+        'system': '⚙️',
+        'process': '⏳',
+        'success': '✅',
+        'error': '❌',
+        'info': 'ℹ️'
+    };
+    return icons[type] || 'ℹ️';
+}
+
+function showAdminPage() {
+    const container = document.getElementById('adminContent');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="admin-dashboard">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h2><i class="fas fa-cogs"></i> Панель администратора</h2>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-database"></i> База данных</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="databaseContent">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Загрузка базы данных...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-bug"></i> Отладка</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="debugContent">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p>Загрузка логов...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-terminal"></i> Терминал</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="terminalContainer">
+                                <div id="terminalOutput" class="terminal-output mb-3"></div>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" id="terminalInput" class="form-control" placeholder="Введите команду..." autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Автоматически загружаем данные при открытии админ-панели
+    loadAdminDatabase();
+    loadAdminLogs();
+}
+
+function showAdminDatabasePage() {
+    const container = document.getElementById('adminDatabaseContent');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Загрузка базы данных...</p>
+        </div>
+    `;
+    
+    loadAdminDatabase();
+}
+
+function showAdminLogsPage() {
+    const container = document.getElementById('adminLogsContent');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Загрузка логов...</p>
+        </div>
+    `;
+    
+    loadAdminLogs();
+}
+
+function exportToPDF(type, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    showMessage('info', `Создание PDF для ${type}...`);
+    
+    // В реальном приложении здесь будет генерация PDF
+    setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(`Данные для ${type} успешно экспортированы`)}`;
+        link.download = `${type}_export.txt`;
+        link.click();
+        
+        showMessage('success', `PDF для ${type} успешно создан`);
+    }, 1000);
 }

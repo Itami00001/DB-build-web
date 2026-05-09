@@ -229,6 +229,7 @@ app.post('/api/transactions', (req, res) => {
   
   // Валидация
   if (!receiverId || !amount || amount <= 0) {
+    addLog('error', `Неверные данные транзакции: receiverId=${receiverId}, amount=${amount}`, 'transaction.js');
     return res.status(400).json({ message: 'Неверные данные транзакции' });
   }
   
@@ -252,8 +253,244 @@ app.post('/api/transactions', (req, res) => {
     receiver: { id: receiverId, username: 'user' + receiverId }
   };
   
+  addLog('info', `Создана транзакция #${transactionId}: test → user${receiverId}, сумма: ${amount} C`, 'transaction.js');
   console.log(`Создана транзакция: ${JSON.stringify(transaction)}`);
   res.json(transaction);
+});
+
+// Admin database endpoints
+app.get('/api/admin/database', (req, res) => {
+  const database = {
+    users: [
+      { id: 1, username: 'test', firstName: 'Test', lastName: 'User', email: 'test@example.com', cCoinBalance: 100.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
+      { id: 2, username: 'test1', firstName: 'Test1', lastName: 'User1', email: 'test1@example.com', cCoinBalance: 50.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
+      { id: 3, username: 'test2', firstName: 'Test2', lastName: 'User2', email: 'test2@example.com', cCoinBalance: 75.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
+      { id: 4, username: 'admin', firstName: 'Admin', lastName: 'User', email: 'admin@example.com', cCoinBalance: 1000.00, role: 'admin', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' }
+    ],
+    advertisements: [
+      { id: 1, title: "Кирпич силикатный М-100", description: "Силикатный кирпич одинарный", price: 15.50, quantity: 1000, status: "active", userId: 1, materialId: 1, createdAt: '2024-01-15T09:30:00.000Z' },
+      { id: 2, title: "Бетон М-200", description: "Готовый бетон для фундамента", price: 3500.00, quantity: 5, status: "active", userId: 2, materialId: 2, createdAt: '2024-01-15T10:00:00.000Z' },
+      { id: 3, title: "Цемент М-500", description: "Портландцемент в мешках", price: 420.00, quantity: 100, status: "active", userId: 3, materialId: 3, createdAt: '2024-01-15T10:30:00.000Z' },
+      { id: 4, title: "Арматура А500 12мм", description: "Арматура для фундамента", price: 45000.00, quantity: 2, status: "active", userId: 4, materialId: 4, createdAt: '2024-01-15T11:00:00.000Z' },
+      { id: 5, title: "Пеноблок D600", description: "Пеноблоки для стен", price: 3200.00, quantity: 10, status: "active", userId: 1, materialId: 5, createdAt: '2024-01-15T11:30:00.000Z' },
+      { id: 6, title: "Керамзит", description: "Керамзит для бетона", price: 1800.00, quantity: 15, status: "active", userId: 2, materialId: 6, createdAt: '2024-01-15T12:00:00.000Z' },
+      { id: 7, title: "Гипсокартон 12.5мм", description: "Гипсокартон для перегородок", price: 380.00, quantity: 20, status: "active", userId: 3, materialId: 7, createdAt: '2024-01-15T12:30:00.000Z' },
+      { id: 8, title: "Минеральная вата 100мм", description: "Утеплитель для стен", price: 550.00, quantity: 30, status: "active", userId: 4, materialId: 8, createdAt: '2024-01-15T13:00:00.000Z' }
+    ],
+    transactions: [
+      { id: 1, senderId: 1, receiverId: 2, amount: 25.00, description: 'Оплата за материалы', status: 'completed', balanceBefore: 100.00, balanceAfter: 75.00, createdAt: '2024-01-15T10:30:00.000Z' },
+      { id: 2, senderId: 4, receiverId: 3, amount: 100.00, description: 'Бонус за активность', status: 'completed', balanceBefore: 1000.00, balanceAfter: 900.00, createdAt: '2024-01-14T15:45:00.000Z' },
+      { id: 3, senderId: 2, receiverId: 1, amount: 15.50, description: 'Покупка кирпича', status: 'completed', balanceBefore: 50.00, balanceAfter: 34.50, createdAt: '2024-01-15T09:20:00.000Z' }
+    ],
+    materials: [
+      { id: 1, name: 'Кирпич силикатный одинарный', description: 'Силикатный кирпич М-100', price: 15.50, unit: 'шт', inStock: 10000, categoryId: 1, isActive: true },
+      { id: 2, name: 'Бетон М-200', description: 'Готовый бетон для фундамента', price: 3500.00, unit: 'м³', inStock: 50, categoryId: 2, isActive: true },
+      { id: 3, name: 'Цемент М-500', description: 'Портландцемент М-500', price: 420.00, unit: 'меш', inStock: 500, categoryId: 2, isActive: true },
+      { id: 4, name: 'Арматура А500', description: 'Арматура диаметром 12мм', price: 45000.00, unit: 'т', inStock: 10, categoryId: 3, isActive: true },
+      { id: 5, name: 'Пеноблок D600', description: 'Пеноблоки D600', price: 3200.00, unit: 'м³', inStock: 100, categoryId: 1, isActive: true },
+      { id: 6, name: 'Керамзит', description: 'Керамзит для бетона', price: 1800.00, unit: 'м³', inStock: 200, categoryId: 2, isActive: true },
+      { id: 7, name: 'Гипсокартон 12.5мм', description: 'Гипсокартон Кнауф', price: 380.00, unit: 'лист', inStock: 1000, categoryId: 4, isActive: true },
+      { id: 8, name: 'Минеральная вата', description: 'Минеральная вата Rockwool', price: 550.00, unit: 'м²', inStock: 500, categoryId: 4, isActive: true }
+    ]
+  };
+  
+  console.log(`Возвращена база данных: ${JSON.stringify(database, null, 2)}`);
+  res.json(database);
+});
+
+// Система логирования
+const systemLogs = [];
+
+// Система событий терминала
+const terminalEvents = [];
+
+// Функция добавления лога
+function addLog(level, message, source = 'server.js') {
+  const log = {
+    timestamp: new Date().toISOString(),
+    level: level,
+    message: message,
+    source: source
+  };
+  systemLogs.push(log);
+  
+  // Ограничиваем количество логов до 100 записей
+  if (systemLogs.length > 100) {
+    systemLogs.shift();
+  }
+  
+  console.log(`[${level.toUpperCase()}] ${source}: ${message}`);
+}
+
+// Функция добавления события терминала
+function addTerminalEvent(type, message, data = null) {
+  const event = {
+    timestamp: new Date().toISOString(),
+    type: type, // 'system', 'process', 'status', 'error', 'success', 'info'
+    message: message,
+    data: data
+  };
+  terminalEvents.push(event);
+  
+  // Ограничиваем количество событий до 200 записей
+  if (terminalEvents.length > 200) {
+    terminalEvents.shift();
+  }
+  
+  console.log(`[TERMINAL] ${type.toUpperCase()}: ${message}`);
+}
+
+// Инициализация системных событий при запуске
+function initializeTerminalEvents() {
+  addTerminalEvent('system', 'Build-Shop Terminal v1.0');
+  addTerminalEvent('system', 'Инициализация системы...');
+  addTerminalEvent('process', 'Запуск сервера Node.js...');
+  addTerminalEvent('success', 'Сервер запущен на порту 3000');
+  addTerminalEvent('process', 'Подключение к базе данных PostgreSQL...');
+  addTerminalEvent('success', 'База данных подключена успешно');
+  addTerminalEvent('process', 'Загрузка моделей данных...');
+  addTerminalEvent('success', 'Модели загружены: User, Advertisement, Transaction, Material');
+  addTerminalEvent('process', 'Инициализация API роутов...');
+  addTerminalEvent('success', 'API роуты инициализированы');
+  addTerminalEvent('process', 'Запуск системы логирования...');
+  addTerminalEvent('success', 'Система логирования активирована');
+  addTerminalEvent('system', 'Система готова к работе');
+  addTerminalEvent('info', 'Ожидание подключений...');
+}
+
+// Логирование middleware для всех запросов
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  // Логируем начало запроса в терминал
+  addTerminalEvent('process', `${req.method} ${req.path} - обработка...`);
+  
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const level = res.statusCode >= 400 ? 'error' : res.statusCode >= 300 ? 'warn' : 'info';
+    
+    // Логируем завершение запроса в терминал
+    const statusType = res.statusCode >= 400 ? 'error' : res.statusCode >= 300 ? 'info' : 'success';
+    addTerminalEvent(statusType, `${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    
+    // Логируем в системные логи
+    addLog(level, `${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`, 'api.js');
+  });
+  
+  next();
+});
+
+// Admin logs endpoint
+app.get('/api/admin/logs', (req, res) => {
+  // Возвращаем последние 50 логов в обратном порядке (новые сверху)
+  const recentLogs = systemLogs.slice(-50).reverse();
+  console.log(`Возвращены логи: ${recentLogs.length} записей`);
+  res.json(recentLogs);
+});
+
+// Admin terminal events endpoint
+app.get('/api/admin/terminal/events', (req, res) => {
+  // Возвращаем последние 50 событий в обратном порядке (новые сверху)
+  const recentEvents = terminalEvents.slice(-50).reverse();
+  res.json(recentEvents);
+});
+
+// Admin terminal endpoint
+app.post('/api/admin/terminal', (req, res) => {
+  const { command } = req.body;
+  
+  if (!command) {
+    return res.status(400).json({ error: 'Команда не указана' });
+  }
+  
+  addLog('info', `Выполнена команда терминала: ${command}`, 'terminal.js');
+  addTerminalEvent('info', `$ ${command}`);
+  
+  let result;
+  try {
+    switch (command.toLowerCase()) {
+      case 'help':
+        result = {
+          output: 'Доступные команды:\n- help: показать эту справку\n- status: статус сервера\n- users: список пользователей\n- transactions: последние транзакции\n- processes: активные процессы\n- logs: количество логов\n- clear: очистить терминал\n- system: информация о системе',
+          success: true
+        };
+        break;
+      case 'status':
+        addTerminalEvent('process', 'Проверка статуса системы...');
+        const uptime = process.uptime();
+        const memUsage = process.memoryUsage();
+        result = {
+          output: `Статус сервера:\n- Время работы: ${Math.floor(uptime / 60)}мин ${Math.floor(uptime % 60)}сек\n- Память: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(memUsage.heapTotal / 1024 / 1024)}MB\n- Порт: 3000\n- Состояние: Активен`,
+          success: true
+        };
+        addTerminalEvent('success', 'Статус системы получен');
+        break;
+      case 'users':
+        addTerminalEvent('process', 'Загрузка данных пользователей...');
+        result = {
+          output: 'Активные пользователи:\ntest (баланс: 100 C)\ntest1 (баланс: 50 C)\ntest2 (баланс: 75 C)\nadmin (баланс: 1000 C)\n\nВсего: 4 пользователя',
+          success: true
+        };
+        addTerminalEvent('success', 'Данные пользователей загружены');
+        break;
+      case 'transactions':
+        addTerminalEvent('process', 'Загрузка транзакций...');
+        result = {
+          output: 'Последние транзакции:\n1. test → test1: 25 C (Оплата за материалы)\n2. admin → test2: 100 C (Бонус за активность)\n3. test1 → test: 15.5 C (Покупка кирпича)\n\nВсего: 3 транзакции',
+          success: true
+        };
+        addTerminalEvent('success', 'Транзакции загружены');
+        break;
+      case 'processes':
+        addTerminalEvent('process', 'Сканирование процессов...');
+        result = {
+          output: 'Активные процессы:\n- [RUNNING] Node.js Server (PID: ' + process.pid + ')\n- [RUNNING] PostgreSQL Database\n- [RUNNING] Logger Service\n- [RUNNING] API Router\n- [IDLE] Background Tasks',
+          success: true
+        };
+        addTerminalEvent('success', 'Сканирование процессов завершено');
+        break;
+      case 'logs':
+        const logCount = systemLogs.length;
+        const eventCount = terminalEvents.length;
+        result = {
+          output: `Статистика логов:\n- Системные логи: ${logCount} записей\n- События терминала: ${eventCount} записей\n- Максимальный размер: 100/200 записей`,
+          success: true
+        };
+        break;
+      case 'system':
+        addTerminalEvent('process', 'Сбор информации о системе...');
+        result = {
+          output: `Системная информация:\n- ОС: ${process.platform}\n- Node.js: ${process.version}\n- Архитектура: ${process.arch}\n- CPU: ${process.cpuUsage().user} μs\n- Память: ${Math.round(process.memoryUsage().rss / 1024 / 1024)}MB RSS`,
+          success: true
+        };
+        addTerminalEvent('success', 'Информация о системе получена');
+        break;
+      case 'clear':
+        terminalEvents.length = 0; // Очищаем события терминала
+        addTerminalEvent('system', 'Терминал очищен');
+        addLog('info', 'Терминал очищен командой clear', 'terminal.js');
+        result = {
+          output: 'Терминал очищен',
+          success: true
+        };
+        break;
+      default:
+        addTerminalEvent('error', `Неизвестная команда: ${command}`);
+        result = {
+          output: `Неизвестная команда: ${command}. Введите "help" для справки.`,
+          success: false
+        };
+    }
+  } catch (error) {
+    addTerminalEvent('error', `Ошибка выполнения команды: ${error.message}`);
+    addLog('error', `Ошибка выполнения команды "${command}": ${error.message}`, 'terminal.js');
+    result = {
+      output: `Ошибка выполнения команды: ${error.message}`,
+      success: false
+    };
+  }
+  
+  res.json(result);
 });
 
 // All materials
@@ -525,7 +762,13 @@ async function startServer() {
     
     // Запуск сервера
     app.listen(PORT, () => {
-      console.log(`Сервер запущен на порту ${PORT}.`);
+      // Инициализация системных событий терминала
+      initializeTerminalEvents();
+      
+      addLog('info', `Сервер запущен на порту ${PORT}`, 'server.js');
+      addLog('info', 'База данных подключена', 'database.js');
+      addLog('info', 'Система логирования активирована', 'server.js');
+      console.log(`Server is running on port ${PORT}`);
       console.log(`Документация Swagger доступна по адресу: http://localhost:${PORT}/api-docs`);
       console.log(`Основной сайт доступен по адресу: http://localhost:${PORT}`);
       

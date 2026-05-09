@@ -13,7 +13,7 @@
             --secondary-color: #585757;
             --accent-color: #F5ECE4;
             --accent-dark: #FC6A0A;
-            --background-color: #E74504;
+            --background-color: #e74404dd;
             --text-color: #292929;
         }
 
@@ -210,6 +210,157 @@
         .admin-table th {
             background-color: var(--secondary-color);
             color: var(--background-color);
+        }
+
+        /* Стили для логов */
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .log-error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .log-warn {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+
+        .log-info {
+            background-color: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .log-debug {
+            background-color: #e2e3e5;
+            border-left-color: #6c757d;
+        }
+
+        .log-header {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .log-time {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .log-level {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: white;
+        }
+
+        .log-level.ERROR {
+            background-color: #dc3545;
+        }
+
+        .log-level.WARN {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .log-level.INFO {
+            background-color: #17a2b8;
+        }
+
+        .log-level.DEBUG {
+            background-color: #6c757d;
+        }
+
+        .log-source {
+            color: #666;
+            font-style: italic;
+        }
+
+        .log-message {
+            margin-left: 15px;
+        }
+
+        /* Стили для терминала */
+        .terminal-output {
+            background-color: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .terminal-line {
+            margin: 2px 0;
+        }
+
+        .terminal-prompt {
+            color: #00ff00;
+            margin-right: 5px;
+        }
+
+        .terminal-command {
+            color: #ffffff;
+        }
+
+        .terminal-output {
+            color: #00ff00;
+            white-space: pre-wrap;
+        }
+
+        .terminal-error {
+            color: #ff4444;
+            white-space: pre-wrap;
+        }
+
+        /* Новые стили для терминала */
+        .terminal-time {
+            color: #888;
+            font-size: 0.8em;
+            margin-right: 8px;
+        }
+
+        .terminal-event {
+            margin: 2px 0;
+            padding: 2px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .terminal-icon {
+            margin-right: 8px;
+        }
+
+        .terminal-system {
+            color: #ffd700;
+        }
+
+        .terminal-process {
+            color: #ffa500;
+        }
+
+        .terminal-success {
+            color: #00ff00;
+        }
+
+        .terminal-error {
+            color: #ff4444;
+        }
+
+        .terminal-info {
+            color: #87ceeb;
+        }
+
+        .terminal-message {
+            color: #ffffff;
         }
 
         .debug-log {
@@ -918,14 +1069,32 @@
         </div>
 
         <div id="adminDatabasePage" class="page-content" style="display: none;">
-            <h2><i class="fas fa-database"></i> База Данных</h2>
+            <div class="row">
+                <div class="col-md-8">
+                    <h2><i class="fas fa-database"></i> База Данных</h2>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-outline-primary" onclick="loadAdminDatabase()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                </div>
+            </div>
             <div id="adminDatabaseContent">
                 <!-- Админ панель БД -->
             </div>
         </div>
 
         <div id="adminLogsPage" class="page-content" style="display: none;">
-            <h2><i class="fas fa-bug"></i> Отладка</h2>
+            <div class="row">
+                <div class="col-md-8">
+                    <h2><i class="fas fa-bug"></i> Отладка</h2>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-outline-primary" onclick="loadAdminLogs()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                </div>
+            </div>
             <div id="adminLogsContent">
                 <!-- Логи приложения -->
             </div>
