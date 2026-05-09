@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  postgresdb:
+    image: postgres:15-alpine
+    container_name: build-project-db
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - POSTGRES_USER=$POSTGRESDB_USER
+      - POSTGRES_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      - POSTGRES_DB=$POSTGRESDB_DATABASE
+    ports:
+      - $POSTGRESDB_LOCAL_PORT:$POSTGRESDB_DOCKER_PORT
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - build-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: build-project-pgadmin
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=$PGADMIN_DEFAULT_EMAIL
+      - PGADMIN_DEFAULT_PASSWORD=$PGADMIN_DEFAULT_PASSWORD
+    ports:
+      - $PGADMIN_LOCAL_PORT:80
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgresdb
+    networks:
+      - build-network
+
+  app:
+    depends_on:
+      - postgresdb
+    build: 
+      context: ./build-app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ./.env
+    ports:
+      - $NODE_LOCAL_PORT:$NODE_LOCAL_PORT
+    environment:
+      - DB_HOST=postgresdb
+      - DB_USER=$POSTGRESDB_USER
+      - DB_PASSWORD=$POSTGRESDB_ROOT_PASSWORD
+      - DB_NAME=$POSTGRESDB_DATABASE
+      - DB_PORT=$POSTGRESDB_DOCKER_PORT
+      - NODE_ENV=development
+    volumes:
+      - ./build-app:/app
+      - node_modules:/app/node_modules
+    stdin_open: true
+    tty: true
+    networks:
+      - build-network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  node_modules:
+
+networks:
+  build-network:
+    driver: bridge

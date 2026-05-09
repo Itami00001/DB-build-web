@@ -1,0 +1,22 @@
+{
+  "watch": [
+    "server.js",
+    "app/**/*.js",
+    "public/**/*.js",
+    "public/**/*.html",
+    "public/**/*.css"
+  ],
+  "ext": "js,json,html,css",
+  "ignore": [
+    "node_modules",
+    "*.log",
+    "app/models/index.js",
+    "app/config/database.config.js"
+  ],
+  "exec": "node server.js",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 1000,
+  "verbose": true
+}

@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build-Shop - Строительная фирма</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #292929;
+            --secondary-color: #585757;
+            --accent-color: #F5ECE4;
+            --accent-dark: #FC6A0A;
+            --background-color: #E74504;
+            --text-color: #292929;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--primary-color) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            color: var(--accent-color) !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .nav-link {
+            color: var(--background-color) !important;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-dark);
+            border-color: var(--accent-dark);
+            color: white;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            background-color: white;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            background-color: var(--secondary-color);
+            color: var(--background-color);
+        }
+
+        .c-coin-badge {
+            background-color: var(--accent-color);
+            color: var(--primary-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: var(--secondary-color);
+            color: var(--background-color);
+        }
+
+        .admin-section {
+            background-color: var(--secondary-color);
+            color: var(--background-color);
+        }
+
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+            color: var(--primary-color);
+        }
+
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .modal-content {
+            border-radius: 10px;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(252, 106, 10, 0.25);
+        }
+
+        .btn-outline-primary {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--primary-color);
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--accent-color);
+            padding: 4rem 0;
+        }
+
+        .feature-card {
+            background-color: white;
+            border-left: 4px solid var(--accent-dark);
+        }
+
+        .page-section {
+            display: none;
+            padding: 2rem 0;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        .material-card {
+            transition: all 0.3s ease;
+        }
+
+        .material-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .advertisement-card {
+            border-left: 4px solid var(--accent-dark);
+        }
+
+        .transaction-item {
+            border-left: 4px solid var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .cart-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .order-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+
+        .status-pending { background-color: #ffc107; color: #000; }
+        .status-confirmed { background-color: #17a2b8; color: #fff; }
+        .status-shipped { background-color: #6f42c1; color: #fff; }
+        .status-delivered { background-color: #28a745; color: #fff; }
+        .status-cancelled { background-color: #dc3545; color: #fff; }
+
+        .auth-form {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .admin-table {
+            background-color: white;
+        }
+
+        .admin-table th {
+            background-color: var(--secondary-color);
+            color: var(--background-color);
+        }
+
+        .debug-log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Навбар -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-building"></i> Build-Shop
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="navbar-brand" href="#" data-page="home">
+                            <i class="fas fa-building"></i> Build-Shop
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="home">
+                            <i class="fas fa-home"></i> Главная
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="advertisements">
+                            <i class="fas fa-bullhorn"></i> Объявления
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="transactions">
+                            <i class="fas fa-exchange-alt"></i> Транзакции
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="cart">
+                            <i class="fas fa-shopping-cart"></i> Корзина
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="orders">
+                            <i class="fas fa-shopping-bag"></i> Покупки
+                        </a>
+                    </li>
+                    <li class="nav-item" id="createAdNav" style="display: none;">
+                        <a class="nav-link" href="#" data-page="createAdvertisement">
+                            <i class="fas fa-plus-circle"></i> Создать объявление
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item" id="cCoinNav" style="display: none;">
+                        <span class="nav-link">
+                            <i class="fas fa-coins"></i> 
+                            <span class="c-coin-badge" id="cCoinBalance">0 C</span>
+                        </span>
+                    </li>
+                    <li class="nav-item dropdown" id="adminNav" style="display: none;">
+                        <div class="accordion" id="adminAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="adminHeading">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#adminCollapse">
+                                        <i class="fas fa-user-shield"></i> Admin
+                                    </button>
+                                </h2>
+                                <div id="adminCollapse" class="accordion-collapse collapse" data-bs-parent="#adminAccordion">
+                                    <div class="accordion-body">
+                                        <ul class="list-unstyled">
+                                            <li><a class="dropdown-item" href="#" data-page="adminDatabase">
+                                                <i class="fas fa-database"></i> База Данных
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="#" data-page="adminLogs">
+                                                <i class="fas fa-bug"></i> Отладка
+                                            </a></li>
+                                            <li><a class="dropdown-item" href="http://localhost:3000/api-docs" target="_blank">
+                                                <i class="fas fa-book"></i> Swagger
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown" id="userNav" style="display: none;">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span id="username"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-page="profile">
+                                <i class="fas fa-user-circle"></i> Профиль
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-action="logout">
+                                <i class="fas fa-sign-out-alt"></i> Выход
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item" id="authNav">
+                        <a class="nav-link" href="#" data-page="login">
+                            <i class="fas fa-sign-in-alt"></i> Вход
+                        </a>
+                    </li>
+                    <li class="nav-item" id="registerNav">
+                        <a class="nav-link" href="#" data-page="register">
+                            <i class="fas fa-user-plus"></i> Регистрация
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container mt-4">
+        <!-- Главная страница -->
+        <div id="homePage" class="page-content">
+            <div class="hero-section text-center">
+                <div class="container">
+                    <h1 class="display-4 fw-bold mb-4">
+                        <i class="fas fa-building"></i> Build-Shop
+                    </h1>
+                    <p class="lead mb-4">
+                        Строительная фирма - платформа для покупки и продажи строительных материалов с использованием C-coin валюты
+                    </p>
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="card bg-white bg-opacity-90">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i class="fas fa-info-circle"></i> О проекте
+                                    </h5>
+                                    <p class="card-text">
+                                        Build-Shop - это современная платформа для строительных материалов, где пользователи могут:
+                                    </p>
+                                    <ul class="list-unstyled text-start">
+                                        <li><i class="fas fa-check text-success"></i> Покупать и продавать строительные материалы</li>
+                                        <li><i class="fas fa-check text-success"></i> Использовать C-coin валюту для транзакций</li>
+                                        <li><i class="fas fa-check text-success"></i> Создавать объявления о продаже материалов</li>
+                                        <li><i class="fas fa-check text-success"></i> Обмениваться C-coin валютой между пользователями</li>
+                                        <li><i class="fas fa-check text-success"></i> Просматривать транзакции и историю покупок</li>
+                                    </ul>
+                                    <div class="mt-3">
+                                        <a class="btn btn-primary btn-lg me-2" href="#" data-page="register" role="button">
+                                            <i class="fas fa-user-plus"></i> Регистрация
+                                        </a>
+                                        <a class="btn btn-outline-light btn-lg" href="#" data-page="login" role="button">
+                                            <i class="fas fa-sign-in-alt"></i> Вход
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Информационные секции -->
+            <div class="container mt-5">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-coins text-warning"></i> C-coin Валюта
+                                </h5>
+                                <p class="card-text">
+                                    Внутренняя валюта платформы для покупки и продажи материалов. 
+                                    Admin может выдавать C-coin пользователям через специальную панель.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-bullhorn text-info"></i> Объявления
+                                </h5>
+                                <p class="card-text">
+                                    Создавайте объявления о продаже строительных материалов. 
+                                    Укажите название, категорию, описание, цену и количество.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-exchange-alt text-success"></i> Транзакции
+                                </h5>
+                                <p class="card-text">
+                                    Обменивайтесь C-coin валютой между пользователями. 
+                                    Полная история транзакций и прозрачная система расчетов.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-shopping-cart text-primary"></i> Корзина и Покупки
+                                </h5>
+                                <p class="card-text">
+                                    Добавляйте товары в корзину, совершайте покупки и отслеживайте 
+                                    историю всех ваших заказов и транзакций.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="card feature-card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-user-shield text-danger"></i> Admin Панель
+                                </h5>
+                                <p class="card-text">
+                                    Администратор имеет доступ к базе данных, логам системы 
+                                    и может управлять C-coin валютой пользователей.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Статистика -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card stats-card text-white">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-chart-bar"></i> Статистика платформы
+                                </h5>
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <h3 id="totalUsers">0</h3>
+                                        <p>Пользователей</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h3 id="totalMaterials">0</h3>
+                                        <p>Материалов</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h3 id="totalAds">0</h3>
+                                        <p>Объявлений</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h3 id="totalTransactions">0</h3>
+                                        <p>Транзакций</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Страница входа -->
+        <div id="loginPage" class="page-content" style="display: none;">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-sign-in-alt"></i> Вход в систему</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="loginForm">
+                                <div class="mb-3">
+                                    <label class="form-label">Имя пользователя или Email</label>
+                                    <input type="text" class="form-control" id="loginUsername" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Пароль</label>
+                                    <input type="password" class="form-control" id="loginPassword" autocomplete="current-password" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-sign-in-alt"></i> Войти
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Страница регистрации -->
+        <div id="registerPage" class="page-content" style="display: none;">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-user-plus"></i> Регистрация</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="registerForm">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Имя *</label>
+                                        <input type="text" class="form-control" id="regFirstName" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Фамилия *</label>
+                                        <input type="text" class="form-control" id="regLastName" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Имя пользователя *</label>
+                                        <input type="text" class="form-control" id="regUsername" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Email (только Gmail) *</label>
+                                        <input type="email" class="form-control" id="regEmail" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Пароль *</label>
+                                        <input type="password" class="form-control" id="regPassword" autocomplete="new-password" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Подтверждение пароля *</label>
+                                        <input type="password" class="form-control" id="regPasswordConfirm" autocomplete="new-password" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Дата рождения *</label>
+                                        <input type="date" class="form-control" id="regBirthDate" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Номер телефона</label>
+                                        <input type="tel" class="form-control" id="regPhone">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-user-plus"></i> Зарегистрироваться
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Страница объявлений -->
+        <div id="advertisementsPage" class="page-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-bullhorn"></i> Объявления</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" onclick="loadAdvertisements()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                    <input type="text" class="form-control d-inline-block w-auto" id="searchAds" placeholder="Поиск объявлений...">
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Категория</label>
+                                    <select class="form-select" id="filterCategory">
+                                        <option value="">Все категории</option>
+                                        <option value="1">Стеновые материалы</option>
+                                        <option value="2">Кровельные материалы</option>
+                                        <option value="3">Отделочные материалы</option>
+                                        <option value="4">Инженерные системы</option>
+                                        <option value="5">Фундаментные материалы</option>
+                                        <option value="6">Изоляционные материалы</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Цена от</label>
+                                    <input type="number" class="form-control" id="filterPriceMin" placeholder="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Цена до</label>
+                                    <input type="number" class="form-control" id="filterPriceMax" placeholder="10000">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-primary w-100" onclick="filterAdvertisements()">
+                                        <i class="fas fa-filter"></i> Применить фильтры
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="advertisementsList" class="row">
+                <!-- Загрузка объявлений -->
+            </div>
+            
+            <div id="noAdvertisements" class="text-center py-5" style="display: none;">
+                <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">Объявлений пока нет</h4>
+                <p class="text-muted">Будьте первым, кто создаст объявление!</p>
+                <button class="btn btn-primary" data-page="createAdvertisement">
+                    <i class="fas fa-plus-circle"></i> Создать объявление
+                </button>
+            </div>
+        </div>
+
+        <div id="cartPage" class="page-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-shopping-cart"></i> Корзина</h2>
+                <div>
+                    <button class="btn btn-outline-primary me-2" onclick="loadCart()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                    <button class="btn btn-success" id="checkoutBtn" onclick="checkout()">
+                        <i class="fas fa-credit-card"></i> Оформить заказ
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-shopping-bag"></i> Товары в корзине</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="cartItems">
+                                <!-- Загрузка корзины -->
+                            </div>
+                            <div id="emptyCart" class="text-center py-5" style="display: none;">
+                                <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">Корзина пуста</h4>
+                                <p class="text-muted">Добавьте товары из объявлений</p>
+                                <a class="btn btn-primary" href="#" data-page="advertisements">
+                                    <i class="fas fa-bullhorn"></i> Перейти к объявлениям
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-calculator"></i> Итого</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-6">Товары:</div>
+                                <div class="col-6 text-end" id="cartItemsCount">0</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Сумма:</div>
+                                <div class="col-6 text-end" id="cartTotal">0 C</div>
+                            </div>
+                            <hr>
+                            <div class="row mb-3">
+                                <div class="col-6"><strong>К оплате:</strong></div>
+                                <div class="col-6 text-end"><strong id="cartGrandTotal">0 C</strong></div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <small>Оплата производится в C-coin валюте</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ordersPage" class="page-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-shopping-bag"></i> Мои покупки</h2>
+                <button class="btn btn-outline-primary" onclick="loadOrders()">
+                    <i class="fas fa-sync-alt"></i> Обновить
+                </button>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Статус заказа</label>
+                                    <select class="form-select" id="filterOrderStatus">
+                                        <option value="">Все статусы</option>
+                                        <option value="pending">Ожидает подтверждения</option>
+                                        <option value="confirmed">Подтвержден</option>
+                                        <option value="shipped">Отправлен</option>
+                                        <option value="delivered">Доставлен</option>
+                                        <option value="cancelled">Отменен</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Период</label>
+                                    <select class="form-select" id="filterOrderPeriod">
+                                        <option value="">Все время</option>
+                                        <option value="7">Последние 7 дней</option>
+                                        <option value="30">Последние 30 дней</option>
+                                        <option value="90">Последние 90 дней</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button class="btn btn-primary w-100" onclick="filterOrders()">
+                                        <i class="fas fa-filter"></i> Применить фильтры
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="ordersList">
+                <!-- Загрузка заказов -->
+            </div>
+            
+            <div id="noOrders" class="text-center py-5" style="display: none;">
+                <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">Покупок пока нет</h4>
+                <p class="text-muted">Совершите свою первую покупку!</p>
+                <a class="btn btn-primary" href="#" data-page="advertisements">
+                    <i class="fas fa-bullhorn"></i> Перейти к объявлениям
+                </a>
+            </div>
+        </div>
+
+        <div id="transactionsPage" class="page-content" style="display: none;">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2><i class="fas fa-exchange-alt"></i> Транзакции</h2>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-outline-primary me-2" onclick="loadTransactions()">
+                        <i class="fas fa-sync-alt"></i> Обновить
+                    </button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTransactionModal">
+                        <i class="fas fa-plus-circle"></i> Создать транзакцию
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-history"></i> История транзакций</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="transactionsList">
+                                <!-- Загрузка транзакций -->
+                            </div>
+                            <div id="noTransactions" class="text-center py-4" style="display: none;">
+                                <i class="fas fa-exchange-alt fa-2x text-muted mb-2"></i>
+                                <p class="text-muted">Транзакций пока нет</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="profilePage" class="page-content" style="display: none;">
+            <h2><i class="fas fa-user-circle"></i> Мой профиль</h2>
+            <div id="profileInfo">
+                <!-- Загрузка профиля -->
+            </div>
+        </div>
+
+        <div id="createAdvertisementPage" class="page-content" style="display: none;">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2><i class="fas fa-plus-circle"></i> Создать объявление</h2>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge bg-info">
+                        <i class="fas fa-coins"></i> Ваш баланс: <span id="userBalance">0</span> C
+                    </span>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-plus-circle"></i> Бланк создания объявления</h4>
+                </div>
+                <div class="card-body">
+                    <form id="createAdvertisementForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Название материала *</label>
+                                <input type="text" class="form-control" id="materialName" required 
+                                       placeholder="Например: Кирпич силикатный">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Категория *</label>
+                                <select class="form-select" id="materialCategory" required>
+                                    <option value="">Выберите категорию</option>
+                                    <option value="1">Стеновые материалы</option>
+                                    <option value="2">Кровельные материалы</option>
+                                    <option value="3">Отделочные материалы</option>
+                                    <option value="4">Инженерные системы</option>
+                                    <option value="5">Фундаментные материалы</option>
+                                    <option value="6">Изоляционные материалы</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="materialDescription" rows="4" 
+                                      placeholder="Опишите материал, его состояние, характеристики..."></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Цена C *</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="materialPrice" step="0.01" min="0" required 
+                                           placeholder="0.00">
+                                    <span class="input-group-text">C</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Количество материала *</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="materialQuantity" step="0.01" min="0.01" required 
+                                           placeholder="1.00">
+                                    <span class="input-group-text" id="quantityUnit">шт</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Единица измерения</label>
+                                <select class="form-select" id="materialUnit">
+                                    <option value="шт">шт</option>
+                                    <option value="м">м</option>
+                                    <option value="м²">м²</option>
+                                    <option value="м³">м³</option>
+                                    <option value="кг">кг</option>
+                                    <option value="т">т</option>
+                                    <option value="меш">меш</option>
+                                    <option value="л">л</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Минимальный заказ</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="materialMinOrder" step="0.01" min="0.01" 
+                                           placeholder="1.00">
+                                    <span class="input-group-text" id="minOrderUnit">шт</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Количество в наличии</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="materialInStock" step="0.01" min="0.01" 
+                                           placeholder="100.00">
+                                    <span class="input-group-text" id="stockUnit">шт</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Важно:</strong> Объявление будет опубликовано после проверки модератором.
+                            Вы сможете редактировать или удалить объявление в любой момент.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-plus-circle"></i> Создать объявление
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-outline-secondary w-100" onclick="resetAdForm()">
+                                    <i class="fas fa-undo"></i> Очистить форму
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="adminDatabasePage" class="page-content" style="display: none;">
+            <h2><i class="fas fa-database"></i> База Данных</h2>
+            <div id="adminDatabaseContent">
+                <!-- Админ панель БД -->
+            </div>
+        </div>
+
+        <div id="adminLogsPage" class="page-content" style="display: none;">
+            <h2><i class="fas fa-bug"></i> Отладка</h2>
+            <div id="adminLogsContent">
+                <!-- Логи приложения -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div class="modal fade" id="messageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalTitle">Сообщение</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="messageModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания транзакции -->
+    <div class="modal fade" id="createTransactionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exchange-alt"></i> Создать транзакцию
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createTransactionForm">
+                        <div class="mb-3">
+                            <label class="form-label">Получатель *</label>
+                            <select class="form-select" id="transactionRecipient" required>
+                                <option value="">Выберите пользователя</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Сумма C *</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="transactionAmount" step="0.01" min="0.01" required 
+                                       placeholder="0.00">
+                                <span class="input-group-text">C</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="transactionDescription" rows="3" 
+                                      placeholder="Опишите назначение платежа..."></textarea>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <small>Ваш баланс: <span id="modalUserBalance">0</span> C</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-exchange-alt"></i> Отправить C-coin
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Спиннер загрузки -->
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Загрузка...</span>
+        </div>
+    </div>
+
+    <!-- Контейнер для уведомлений -->
+    <div class="toast-container"></div>
+
+    <!-- Скрипты -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
