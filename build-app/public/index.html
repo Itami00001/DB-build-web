@@ -32,6 +32,8 @@
             color: var(--accent-color) !important;
             font-weight: bold;
             font-size: 1.5rem;
+            margin-right: 3rem;
+            margin-left: 0;
         }
 
         .nav-link {
@@ -79,6 +81,8 @@
             border-radius: 1rem;
             font-size: 0.875rem;
             font-weight: bold;
+            white-space: nowrap;
+            display: inline-block;
         }
 
         .accordion-button:not(.collapsed) {
@@ -89,6 +93,16 @@
         .admin-section {
             background-color: var(--secondary-color);
             color: var(--background-color);
+        }
+
+        /* Убираем все стили для adminNav чтобы не переопределять display: none */
+
+        .navbar-nav {
+            align-items: center;
+        }
+
+        .navbar-nav .nav-item {
+            margin-right: 0.5rem;
         }
 
         .table-container {
@@ -388,11 +402,6 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="navbar-brand" href="#" data-page="home">
-                            <i class="fas fa-building"></i> Build-Shop
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="#" data-page="home">
                             <i class="fas fa-home"></i> Главная
                         </a>
@@ -426,8 +435,7 @@
                 <ul class="navbar-nav">
                     <li class="nav-item" id="cCoinNav" style="display: none;">
                         <span class="nav-link">
-                            <i class="fas fa-coins"></i> 
-                            <span class="c-coin-badge" id="cCoinBalance">0 C</span>
+                            <i class="fas fa-coins"></i> <span class="c-coin-badge" id="cCoinBalance">0 C</span>
                         </span>
                     </li>
                     <li class="nav-item dropdown" id="adminNav" style="display: none;">

@@ -14,35 +14,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('currentUser');
     
+    console.log('=== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===');
+    console.log('Токен в localStorage:', token);
+    console.log('Пользователь в localStorage:', user);
+    
     if (token && user) {
         try {
             authToken = token;
             currentUser = JSON.parse(user);
             
+            console.log('✅ Пользователь из localStorage:', currentUser);
+            console.log('✅ Проверяем роль пользователя:', currentUser.role);
+            
             // Проверяем валидность пользователя
             if (currentUser && currentUser.username) {
-                updateUIForLoggedInUser();
-                // Асинхронно проверяем токен на сервере
-                validateTokenAndLoadData();
+                console.log('✅ Пользователь валиден, вызываем updateUIForLoggedInUser через 100ms');
+                // Добавляем задержку чтобы убедиться, что DOM элементы готовы
+                setTimeout(() => {
+                    console.log('✅ Вызываем updateUIForLoggedInUser');
+                    updateUIForLoggedInUser();
+                    console.log('✅ Вызываем validateTokenAndLoadData');
+                    // Асинхронно проверяем токен на сервере
+                    validateTokenAndLoadData();
+                }, 100);
             } else {
+                console.log('❌ Пользователь невалиден, очищаем данные');
                 clearAuthData();
                 showPage('home');
                 loadFeaturedMaterials();
             }
         } catch (error) {
-            console.error('Ошибка при загрузке данных пользователя:', error);
+            console.error('❌ Ошибка при загрузке данных пользователя:', error);
             clearAuthData();
             showPage('home');
             loadFeaturedMaterials();
         }
     } else {
+        // Если нет токена, показываем главную страницу
+        console.log('❌ Токен не найден, показываем главную страницу');
         showPage('home');
         loadFeaturedMaterials();
     }
-
+    
     // Назначаем обработчики событий
+    console.log('✅ Назначаем обработчики событий');
     setupEventListeners();
+    console.log('=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===');
 });
+
 
 // Настройка обработчиков событий
 function setupEventListeners() {
@@ -239,6 +258,8 @@ function logout() {
 function updateUIForLoggedInUser() {
     if (!currentUser) return;
     
+    console.log('Обновление UI для пользователя:', currentUser.username, 'Роль:', currentUser.role);
+    
     // Скрыть элементы для неавторизованных пользователей
     const authNav = document.getElementById('authNav');
     const registerNav = document.getElementById('registerNav');
@@ -256,14 +277,39 @@ function updateUIForLoggedInUser() {
     // Показать админ панель для администратора
     if (currentUser.role === 'admin') {
         const adminNav = document.getElementById('adminNav');
-        if (adminNav) adminNav.style.display = 'block';
+        console.log('Попытка показать админ-панель. currentUser.role:', currentUser.role);
+        console.log('Элемент adminNav:', adminNav);
+        
+        if (adminNav) {
+            adminNav.style.display = 'block';
+            console.log('✅ Админ-панель показана. display:', adminNav.style.display);
+        } else {
+            console.warn('❌ Элемент adminNav не найден');
+        }
+    } else {
+        console.log('Пользователь не администратор, роль:', currentUser.role);
     }
     
     // Обновить имя пользователя и баланс
     const usernameElement = document.getElementById('username');
     const cCoinBalanceElement = document.getElementById('cCoinBalance');
-    if (usernameElement) usernameElement.textContent = currentUser.username;
-    if (cCoinBalanceElement) cCoinBalanceElement.textContent = `${currentUser.cCoinBalance || 0} C`;
+    
+    console.log('🪙 Обновляем UI пользователя:', currentUser.username, 'Баланс:', currentUser.cCoinBalance);
+    
+    if (usernameElement) {
+        usernameElement.textContent = currentUser.username;
+        console.log('✅ Имя пользователя обновлено:', usernameElement.textContent);
+    } else {
+        console.warn('❌ Элемент username не найден');
+    }
+    
+    if (cCoinBalanceElement) {
+        const balance = parseFloat(currentUser.cCoinBalance || 0).toFixed(2);
+        cCoinBalanceElement.textContent = `${balance} C`;
+        console.log('✅ Баланс обновлен:', cCoinBalanceElement.textContent);
+    } else {
+        console.warn('❌ Элемент cCoinBalance не найден');
+    }
 }
 
 // Обновить UI для вышедшего пользователя
@@ -295,8 +341,11 @@ function clearCorruptedLocalStorage() {
             }
         }
         
-        if (!token || token.length < 10) {
-            console.warn('Невалидный токен в localStorage, очищаем...');
+        // Проверяем токен более тщательно - не очищаем валидные токены
+        if (!token) {
+            console.warn('Токен отсутствует в localStorage');
+        } else if (token.length < 5) {
+            console.warn('Слишком короткий токен в localStorage, очищаем...');
             localStorage.removeItem('authToken');
         }
     } catch (error) {
@@ -309,26 +358,68 @@ async function validateTokenAndLoadData() {
     try {
         const response = await apiRequest('/users/profile', 'GET');
         if (response) {
-            // Проверяем, что данные соответствуют текущему пользователю
-            if (response.username === currentUser.username) {
+            // Проверяем, что ID пользователя совпадают (более надежно чем username)
+            if (response.id === currentUser.id) {
                 currentUser = response;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 updateUIForLoggedInUser();
+                
+                console.log('✅ Пользователь подтвержден, баланс:', currentUser.cCoinBalance);
+                
+                // Дополнительная проверка для администратора
+                await validateAdminUser();
             } else {
-                console.warn('Несоответствие данных пользователя, перезагружаем...');
+                console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: Несоответствие ID пользователя! Local:', currentUser.id, 'Server:', response.id);
+                console.error('❌ Это может быть попытка подмены сессии, разлогиниваем...');
+                // При несоответствии ID - разлогиниваем (возможна подмена сессии)
                 clearAuthData();
                 showPage('home');
                 loadFeaturedMaterials();
+                showMessage('error', 'Ошибка безопасности. Пожалуйста, войдите снова.');
+                return;
             }
         }
     } catch (error) {
         console.error('Ошибка валидации токена:', error);
-        // Если токен невалидный, очищаем localStorage и перенаправляем на вход
+        // Разлогиниваем только при явной ошибке авторизации, не при сетевых проблемах
         if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
+            console.warn('Токен невалидный, разлогиниваем...');
             clearAuthData();
             showPage('home');
             loadFeaturedMaterials();
             showMessage('warning', 'Сессия истекла. Пожалуйста, войдите снова.');
+        } else {
+            // При сетевых ошибках не разлогиниваем, просто показываем предупреждение
+            console.warn('Временная ошибка сети, сохраняем сессию');
+            showMessage('warning', 'Проблемы с подключением. Сессия сохранена.');
+        }
+    }
+}
+
+// Проверка пользователя admin/adminadmin в базе данных
+async function validateAdminUser() {
+    console.log('validateAdminUser вызвана. currentUser:', currentUser);
+    
+    if (!currentUser || !currentUser.username) {
+        console.log('currentUser не существует, выходим из validateAdminUser');
+        return;
+    }
+    
+    try {
+        // Проверяем, является ли пользователь администратором
+        if (currentUser.username === 'admin' && currentUser.role === 'admin') {
+            console.log('✅ Пользователь admin с ролью admin подтвержден');
+            // Дополнительный запрос не нужен - данные уже получены в validateTokenAndLoadData
+            console.log('✅ Админ-панель будет показана через updateUIForLoggedInUser');
+        } else {
+            console.log('Пользователь не admin или не admin role:', currentUser.username, currentUser.role);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка проверки администратора:', error);
+        if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
+            clearAuthData();
+            showPage('home');
+            showMessage('error', 'Сессия истекла. Пожалуйста, войдите снова.');
         }
     }
 }
@@ -540,7 +631,7 @@ async function apiRequest(endpoint, method = 'GET', body = null, retryCount = 0)
         };
         
         if (authToken) {
-            options.headers['x-access-token'] = authToken;
+            options.headers['Authorization'] = `Bearer ${authToken}`;
         }
         
         if (body) {
