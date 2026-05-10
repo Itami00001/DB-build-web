@@ -771,7 +771,8 @@ async function apiRequest(endpoint, method = 'GET', body = null, retryCount = 0)
 async function updateTransactionCounters() {
     try {
         // Обновляем счетчик на главной странице
-        const stats = await apiRequest('/admin/database/stats', 'GET');
+        const database = await apiRequest('/admin/database', 'GET');
+        const stats = database.stats || database;
         if (stats && stats.transactions !== undefined) {
             const totalTransactionsElement = document.getElementById('totalTransactions');
             if (totalTransactionsElement) {
@@ -1335,7 +1336,7 @@ function createTransactionCard(transaction) {
     
     // Определяем тип транзакции
     const isPurchase = transaction.isPurchase || transaction.type === 'purchase';
-    const transactionId = isPurchase ? transaction.id.replace('order_', '') : transaction.id;
+    const transactionId = isPurchase && typeof transaction.id === 'string' ? transaction.id.replace('order_', '') : transaction.id;
     const icon = isPurchase ? 'fa-shopping-cart' : 'fa-exchange-alt';
     const title = isPurchase ? `Покупка #${transactionId}` : `Транзакция #${transaction.id}`;
     
