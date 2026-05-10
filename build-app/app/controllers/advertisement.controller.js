@@ -84,22 +84,22 @@ exports.findAll = async (req, res) => {
     const categoryId = req.query.categoryId;
     const minPrice = req.query.minPrice;
     const maxPrice = req.query.maxPrice;
-    const status = req.query.status || 'active';
+    const status = req.query.status;
     const userId = req.query.userId;
     const sortBy = req.query.sortBy || 'createdAt';
     const sortOrder = req.query.sortOrder || 'DESC';
 
     const where = {};
 
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+
     if (search) {
       where[Op.or] = [
         { title: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } }
       ];
-    }
-
-    if (status) {
-      where.status = status;
     }
 
     if (userId) {
@@ -110,14 +110,7 @@ exports.findAll = async (req, res) => {
       {
         model: Material,
         as: 'material',
-        attributes: ['id', 'name', 'categoryId'],
-        include: [
-          {
-            model: db.materialCategory,
-            as: 'category',
-            attributes: ['id', 'name']
-          }
-        ]
+        attributes: ['id', 'name']
       },
       {
         model: User,
@@ -145,6 +138,11 @@ exports.findAll = async (req, res) => {
       offset,
       order: [[sortBy, sortOrder]]
     });
+
+    // Временная диагностика
+    console.log(`Advertisements query - Status filter: ${status}, Where clause:`, JSON.stringify(where));
+    console.log(`Found ${count} advertisements total`);
+    console.log(`Advertisement statuses:`, rows.map(ad => ({ id: ad.id, title: ad.title, status: ad.status })));
 
     res.send({
       advertisements: rows,

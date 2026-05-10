@@ -73,9 +73,12 @@ app.get('/', (req, res) => {
 });
 
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  const logMessage = `${timestamp} - ${req.method} ${req.url} - ${req.ip}`;
-  console.log(logMessage);
+  // Логируем только важные запросы API
+  if (req.url.startsWith('/api/') && !req.url.includes('/admin/database')) {
+    const timestamp = new Date().toISOString();
+    const logMessage = `${timestamp} - ${req.method} ${req.url}`;
+    console.log(logMessage);
+  }
   next();
 });
 
@@ -555,38 +558,6 @@ app.get('/api/material-categories', (req, res) => {
   res.json(categories);
 });
 
-// Advertisements
-app.get('/api/advertisements', (req, res) => {
-  const advertisements = [
-    {
-      id: 1,
-      title: 'Продам кирпич силикатный',
-      description: 'Качественный силикатный кирпич по низкой цене',
-      materialId: 1,
-      userId: 1,
-      price: 14.50,
-      quantity: 5000,
-      status: 'active',
-      location: 'Москва',
-      images: [],
-      contactInfo: {},
-      views: 25,
-      featured: false,
-      createdAt: '2024-01-01T00:00:00.000Z',
-      material: {
-        id: 1,
-        name: 'Кирпич силикатный одинарный'
-      },
-      user: {
-        id: 1,
-        firstName: 'test',
-        lastName: 'user'
-      }
-    }
-  ];
-  
-  res.json(advertisements);
-});
 
 
 
@@ -599,7 +570,6 @@ require('./app/routes/public.routes')(app);
 require('./app/routes/materialCategory.routes')(app);
 require('./app/routes/material.routes')(app);
 require('./app/routes/advertisement.routes')(app);
-require('./app/routes/advertisements.test.routes')(app);
 require('./app/routes/order.routes')(app);
 require('./app/routes/transaction.routes')(app);
 require('./app/routes/cart.routes')(app);

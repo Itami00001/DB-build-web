@@ -14,52 +14,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const token = localStorage.getItem('authToken');
     const user = localStorage.getItem('currentUser');
     
-    console.log('=== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===');
-    console.log('Токен в localStorage:', token);
-    console.log('Пользователь в localStorage:', user);
-    
     if (token && user) {
         try {
             authToken = token;
             currentUser = JSON.parse(user);
             
-            console.log('✅ Пользователь из localStorage:', currentUser);
-            console.log('✅ Проверяем роль пользователя:', currentUser.role);
-            
             // Проверяем валидность пользователя
             if (currentUser && currentUser.username) {
-                console.log('✅ Пользователь валиден, вызываем updateUIForLoggedInUser через 100ms');
                 // Добавляем задержку чтобы убедиться, что DOM элементы готовы
                 setTimeout(() => {
-                    console.log('✅ Вызываем updateUIForLoggedInUser');
                     updateUIForLoggedInUser();
-                    console.log('✅ Вызываем validateTokenAndLoadData');
                     // Асинхронно проверяем токен на сервере
                     validateTokenAndLoadData();
                 }, 100);
             } else {
-                console.log('❌ Пользователь невалиден, очищаем данные');
                 clearAuthData();
                 showPage('home');
                 loadFeaturedMaterials();
             }
         } catch (error) {
-            console.error('❌ Ошибка при загрузке данных пользователя:', error);
+            console.error('Ошибка парсинга пользователя из localStorage:', error);
             clearAuthData();
             showPage('home');
             loadFeaturedMaterials();
         }
     } else {
         // Если нет токена, показываем главную страницу
-        console.log('❌ Токен не найден, показываем главную страницу');
         showPage('home');
         loadFeaturedMaterials();
     }
     
     // Назначаем обработчики событий
-    console.log('✅ Назначаем обработчики событий');
     setupEventListeners();
-    console.log('=== ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА ===');
 });
 
 
@@ -259,56 +245,32 @@ function updateUIForLoggedInUser() {
     if (!currentUser) return;
     
     console.log('Обновление UI для пользователя:', currentUser.username, 'Роль:', currentUser.role);
-    
     // Скрыть элементы для неавторизованных пользователей
     const authNav = document.getElementById('authNav');
-    const registerNav = document.getElementById('registerNav');
-    if (authNav) authNav.style.display = 'none';
-    if (registerNav) registerNav.style.display = 'none';
-    
-    // Показать элементы для авторизованных пользователей
     const userNav = document.getElementById('userNav');
-    const cCoinNav = document.getElementById('cCoinNav');
-    const createAdNav = document.getElementById('createAdNav');
+    
+    if (authNav) authNav.style.display = 'none';
     if (userNav) userNav.style.display = 'block';
-    if (cCoinNav) cCoinNav.style.display = 'block';
-    if (createAdNav) createAdNav.style.display = 'block';
     
     // Показать админ панель для администратора
     if (currentUser.role === 'admin') {
         const adminNav = document.getElementById('adminNav');
-        console.log('Попытка показать админ-панель. currentUser.role:', currentUser.role);
-        console.log('Элемент adminNav:', adminNav);
-        
         if (adminNav) {
             adminNav.style.display = 'block';
-            console.log('✅ Админ-панель показана. display:', adminNav.style.display);
-        } else {
-            console.warn('❌ Элемент adminNav не найден');
         }
-    } else {
-        console.log('Пользователь не администратор, роль:', currentUser.role);
     }
     
     // Обновить имя пользователя и баланс
     const usernameElement = document.getElementById('username');
     const cCoinBalanceElement = document.getElementById('cCoinBalance');
     
-    console.log('🪙 Обновляем UI пользователя:', currentUser.username, 'Баланс:', currentUser.cCoinBalance);
-    
     if (usernameElement) {
         usernameElement.textContent = currentUser.username;
-        console.log('✅ Имя пользователя обновлено:', usernameElement.textContent);
-    } else {
-        console.warn('❌ Элемент username не найден');
     }
     
     if (cCoinBalanceElement) {
         const balance = parseFloat(currentUser.cCoinBalance || 0).toFixed(2);
         cCoinBalanceElement.textContent = `${balance} C`;
-        console.log('✅ Баланс обновлен:', cCoinBalanceElement.textContent);
-    } else {
-        console.warn('❌ Элемент cCoinBalance не найден');
     }
 }
 
@@ -851,7 +813,20 @@ function viewAdvertisement(advertisementId) {
 // Загрузить объявления
 async function loadAdvertisements() {
     try {
-        const data = await apiRequest('/advertisements/all', 'GET');
+        // Запрашиваем все объявления без ограничений пагинации и фильтрации по статусу
+        const timestamp = Date.now();
+        const response = await apiRequest(`/advertisements?limit=100&status=all&t=${timestamp}`, 'GET');
+        
+        // Временная диагностика
+        console.log('API Response:', response);
+        console.log('Response type:', typeof response);
+        console.log('Is array:', Array.isArray(response));
+        
+        // Извлекаем массив объявлений из ответа
+        const data = response.advertisements || response;
+        console.log('Data after extraction:', data);
+        console.log('Data length:', data ? data.length : 'undefined');
+        
         const container = document.getElementById('advertisementsList');
         const noAds = document.getElementById('noAdvertisements');
         
@@ -859,12 +834,16 @@ async function loadAdvertisements() {
         
         // API возвращает массив объявлений напрямую
         if (data && Array.isArray(data) && data.length > 0) {
+            console.log(`Processing ${data.length} advertisements`);
             noAds.style.display = 'none';
-            data.forEach(advertisement => {
+            data.forEach((advertisement, index) => {
+                console.log(`Ad ${index}:`, advertisement.id, advertisement.title);
                 const card = createAdvertisementCard(advertisement);
                 container.appendChild(card);
             });
+            console.log(`Added ${container.children.length} cards to container`);
         } else {
+            console.log('No advertisements found');
             noAds.style.display = 'block';
         }
     } catch (error) {
@@ -891,33 +870,27 @@ async function loadCart() {
         const container = document.getElementById('cartItems');
         const emptyCart = document.getElementById('emptyCart');
         
-        console.log('🛒 Данные корзины:', data);
-        
         container.innerHTML = '';
         
-        // Бэкенд возвращает массив напрямую, а не объект с cartItems
+        // API может возвращать массив напрямую или объект с полем cartItems
         const cartItems = Array.isArray(data) ? data : (data.cartItems || []);
         
         if (cartItems.length > 0) {
-            console.log('🛒 Товаров в корзине:', cartItems.length);
             emptyCart.style.display = 'none';
             let total = 0;
             let itemsCount = 0;
             
             cartItems.forEach(item => {
-                console.log('🛒 Элемент корзины:', item);
                 const cartItem = createCartItem(item);
                 container.appendChild(cartItem);
                 total += item.price * item.quantity;
                 itemsCount += item.quantity;
             });
             
-            // Обновляем итоговую информацию
             document.getElementById('cartItemsCount').textContent = itemsCount;
             document.getElementById('cartTotal').textContent = total.toFixed(2) + ' C';
             document.getElementById('cartGrandTotal').textContent = total.toFixed(2) + ' C';
         } else {
-            console.log('🛒 Корзина пуста или нет данных');
             emptyCart.style.display = 'block';
             document.getElementById('cartItemsCount').textContent = '0';
             document.getElementById('cartTotal').textContent = '0 C';
@@ -1251,47 +1224,29 @@ async function handleCreateAdvertisement(event) {
 // Загрузить транзакции
 async function loadTransactions() {
     try {
-        console.log('🔄 Загрузка транзакций...');
         const response = await apiRequest('/transactions', 'GET');
-        console.log('📊 Получен ответ от API:', response);
         
         // Извлекаем массив транзакций из ответа
         const data = response.transactions || response;
-        console.log('📊 Получены транзакции:', data);
-        console.log('📊 Количество транзакций:', data ? data.length : 0);
-        
         const container = document.getElementById('transactionsList');
         const noTransactions = document.getElementById('noTransactions');
-        
-        console.log('📦 Контейнер найден:', !!container);
-        console.log('📦 Элемент "нет транзакций" найден:', !!noTransactions);
         
         container.innerHTML = '';
         
         if (data && Array.isArray(data) && data.length > 0) {
-            console.log('✅ Отображаем транзакции...');
             noTransactions.style.display = 'none';
-            data.forEach((transaction, index) => {
-                console.log(`📝 Создаем карточку транзакции ${index + 1}:`, transaction);
+            data.forEach(transaction => {
                 const card = createTransactionCard(transaction);
-                console.log(`📝 Карточка создана:`, card);
-                console.log(`📝 HTML карточки:`, card.outerHTML);
                 container.appendChild(card);
-                console.log(`📝 Карточка добавлена в контейнер`);
             });
-            console.log('✅ Все транзакции добавлены в DOM');
-            console.log('📝 Содержимое контейнера после добавления:', container.innerHTML);
-            console.log('📝 Количество дочерних элементов:', container.children.length);
-            console.log('📝 Стили контейнера:', getComputedStyle(container).display);
         } else {
-            console.log('⚠️ Транзакций нет или неверный формат данных');
             noTransactions.style.display = 'block';
         }
         
         // Загружаем список пользователей для формы создания транзакции
         await loadUsersForTransaction();
     } catch (error) {
-        console.error('❌ Ошибка загрузки транзакций:', error);
+        console.error('Ошибка загрузки транзакций:', error);
         document.getElementById('noTransactions').style.display = 'block';
     }
 }

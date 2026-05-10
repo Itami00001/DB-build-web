@@ -166,7 +166,12 @@ module.exports = function(app) {
    *                 totalPages:
    *                   type: integer
    */
-  app.get("/api/advertisements", controller.findAll);
+  app.get("/api/advertisements", (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+  }, controller.findAll);
 
   /**
    * @swagger
