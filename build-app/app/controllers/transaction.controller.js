@@ -26,6 +26,20 @@ exports.create = async (req, res) => {
       });
     }
 
+    // Диагностика балансов
+    console.log('Sender data:', { 
+      id: sender.id, 
+      username: sender.username, 
+      cCoinBalance: sender.cCoinBalance, 
+      balanceType: typeof sender.cCoinBalance 
+    });
+    console.log('Receiver data:', { 
+      id: receiver.id, 
+      username: receiver.username, 
+      cCoinBalance: receiver.cCoinBalance, 
+      balanceType: typeof receiver.cCoinBalance 
+    });
+
     // Check sender balance for transfers and purchases
     if (type === 'transfer' && sender.cCoinBalance < amount) {
       return res.status(400).send({
@@ -35,29 +49,50 @@ exports.create = async (req, res) => {
 
     // Create transaction
     const transaction = await db.sequelize.transaction(async (t) => {
-      const newTransaction = await Transaction.create({
+      console.log('Creating transaction:', { senderId, receiverId, amount, type, description });
+      console.log('Sender balance before:', sender.cCoinBalance);
+      
+      // Calculate balances first
+      const senderBalanceBefore = parseFloat(sender.cCoinBalance || 0);
+      const amountFloat = parseFloat(amount);
+      const newSenderBalance = senderBalanceBefore - amountFloat;
+      
+      console.log('Balance calculation:', { senderBalanceBefore, amountFloat, newSenderBalance });
+      
+      // Проверка на NaN
+      if (isNaN(newSenderBalance)) {
+        throw new Error('Invalid balance calculation');
+      }
+      
+      const transactionData = {
         senderId,
         receiverId,
         amount,
         type,
         description,
-        balanceBefore: sender.cCoinBalance,
+        balanceBefore: senderBalanceBefore,
+        balanceAfter: newSenderBalance, // Устанавливаем сразу
         status: 'completed',
         completedAt: new Date()
-      }, { transaction: t });
+      };
+      
+      console.log('Transaction data before create:', transactionData);
+      
+      const newTransaction = await Transaction.create(transactionData, { transaction: t });
+
+      console.log('Transaction created successfully:', newTransaction.id);
+      console.log('Transaction balanceBefore:', newTransaction.balanceBefore);
+      console.log('Transaction balanceAfter:', newTransaction.balanceAfter);
 
       // Update balances
       await sender.update({
-        cCoinBalance: parseFloat(sender.cCoinBalance) - parseFloat(amount)
+        cCoinBalance: newSenderBalance
       }, { transaction: t });
+
+      console.log('Sender balance updated to:', newSenderBalance);
 
       await receiver.update({
-        cCoinBalance: parseFloat(receiver.cCoinBalance) + parseFloat(amount)
-      }, { transaction: t });
-
-      // Update transaction with new balance
-      await newTransaction.update({
-        balanceAfter: parseFloat(sender.cCoinBalance) - parseFloat(amount)
+        cCoinBalance: parseFloat(receiver.cCoinBalance || 0) + amountFloat
       }, { transaction: t });
 
       return newTransaction;

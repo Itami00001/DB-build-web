@@ -1370,7 +1370,8 @@ async function handleCreateTransaction(event) {
         const formData = {
             receiverId: parseInt(document.getElementById('transactionRecipient').value),
             amount: parseFloat(document.getElementById('transactionAmount').value),
-            description: document.getElementById('transactionDescription').value
+            description: document.getElementById('transactionDescription').value,
+            type: 'transfer'  // Добавляем тип транзакции
         };
         
         // Валидация
