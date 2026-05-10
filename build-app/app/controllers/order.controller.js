@@ -78,8 +78,8 @@ exports.create = async (req, res) => {
           paymentMethod,
           deliveryAddress,
           notes,
-          status: 'pending',
-          paymentStatus: 'pending'
+          status: 'confirmed',
+          paymentStatus: 'paid'
         }, { transaction: t });
 
     // Update advertisement quantity and status
@@ -120,10 +120,7 @@ exports.create = async (req, res) => {
             cCoinBalance: buyerBalanceBefore - transactionAmount
           }, { transaction: t });
 
-          // Update order payment status
-          await order.update({
-            paymentStatus: 'paid'
-          }, { transaction: t });
+          // Order status already set to 'confirmed' and paymentStatus to 'paid' during creation
         }
 
         createdOrders.push(order);

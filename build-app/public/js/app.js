@@ -649,9 +649,10 @@ function createAdvertisementCard(advertisement) {
 function getStatusClass(status) {
     const classes = {
         'pending': 'bg-warning text-dark',
-        'confirmed': 'bg-info text-white',
-        'shipped': 'bg-primary text-white',
-        'delivered': 'bg-success text-white',
+        'confirmed': 'bg-success text-white',
+        'rejected': 'bg-danger text-white',
+        'shipped': 'bg-info text-white',
+        'delivered': 'bg-primary text-white',
         'cancelled': 'bg-danger text-white',
         'refunded': 'bg-secondary text-white',
         'active': 'bg-success',
@@ -664,7 +665,8 @@ function getStatusClass(status) {
 function getStatusText(status) {
     const texts = {
         'pending': 'В обработке',
-        'confirmed': 'Подтвержден',
+        'confirmed': 'Одобрено',
+        'rejected': 'Не одобрено',
         'shipped': 'Отправлен',
         'delivered': 'Доставлен',
         'cancelled': 'Отменен',
@@ -1277,27 +1279,36 @@ function createTransactionCard(transaction) {
     const statusClass = getTransactionStatusClass(transaction.status);
     const statusText = getTransactionStatusText(transaction.status);
     
+    // Определяем тип транзакции
+    const isPurchase = transaction.isPurchase || transaction.type === 'purchase';
+    const transactionId = isPurchase ? transaction.id.replace('order_', '') : transaction.id;
+    const icon = isPurchase ? 'fa-shopping-cart' : 'fa-exchange-alt';
+    const title = isPurchase ? `Покупка #${transactionId}` : `Транзакция #${transaction.id}`;
+    
     col.innerHTML = `
         <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <h6 class="card-title mb-1">
-                        <i class="fas fa-exchange-alt"></i> Транзакция #${transaction.id}
+                        <i class="fas ${icon}"></i> ${title}
                     </h6>
                     <span class="badge ${statusClass}">${statusText}</span>
+                    ${isPurchase ? '<span class="badge bg-info text-white">Покупка</span>' : ''}
                 </div>
                 <p class="card-text">
                     <strong>Отправитель:</strong> ${transaction.sender ? transaction.sender.username : 'Неизвестно'}<br>
                     <strong>Получатель:</strong> ${transaction.receiver ? transaction.receiver.username : 'Неизвестно'}<br>
                     <strong>Сумма:</strong> <span class="text-success">${transaction.amount} C</span><br>
                     <strong>Дата:</strong> ${new Date(transaction.createdAt || transaction.transactionDate).toLocaleString('ru-RU')}
+                    ${transaction.paymentMethod ? `<br><strong>Способ оплаты:</strong> ${transaction.paymentMethod === 'c-coin' ? 'C-coin' : transaction.paymentMethod}` : ''}
                 </p>
                 ${transaction.description ? `<p class="card-text"><small>${transaction.description}</small></p>` : ''}
+                ${transaction.balanceBefore !== undefined ? `
                 <div class="d-flex justify-content-between">
                     <small class="text-muted">
                         Баланс до: ${transaction.balanceBefore} C → После: ${transaction.balanceAfter} C
                     </small>
-                </div>
+                </div>` : ''}
             </div>
         </div>
     `;
@@ -1311,7 +1322,13 @@ function getTransactionStatusClass(status) {
         'pending': 'bg-warning',
         'completed': 'bg-success',
         'failed': 'bg-danger',
-        'cancelled': 'bg-secondary'
+        'cancelled': 'bg-secondary',
+        // Статусы заказов
+        'confirmed': 'bg-success text-white',
+        'rejected': 'bg-danger text-white',
+        'shipped': 'bg-info text-white',
+        'delivered': 'bg-primary text-white',
+        'refunded': 'bg-secondary text-white'
     };
     return statusMap[status] || 'bg-secondary';
 }
@@ -1322,7 +1339,13 @@ function getTransactionStatusText(status) {
         'pending': 'Ожидает',
         'completed': 'Завершена',
         'failed': 'Ошибка',
-        'cancelled': 'Отменена'
+        'cancelled': 'Отменена',
+        // Статусы заказов
+        'confirmed': 'Одобрено',
+        'rejected': 'Не одобрено',
+        'shipped': 'Отправлен',
+        'delivered': 'Доставлен',
+        'refunded': 'Возврат'
     };
     return statusMap[status] || status;
 }

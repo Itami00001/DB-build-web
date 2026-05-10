@@ -156,6 +156,7 @@ exports.getAllTableData = async (req, res) => {
         break;
 
       case 'transactions':
+        // Временно упрощенная логика - только обычные транзакции
         const transactionsData = await db.transaction.findAndCountAll({
           include: [
             {
@@ -600,22 +601,93 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllTransactions = async (req, res) => {
   try {
-    const transactions = await db.transaction.findAll({
-      include: [
-        {
-          model: db.user,
-          as: 'sender',
-          attributes: ['id', 'firstName', 'lastName']
-        },
-        {
-          model: db.user,
-          as: 'receiver',
-          attributes: ['id', 'firstName', 'lastName']
-        }
-      ],
-      order: [['transactionDate', 'DESC']]
+    // Получаем все транзакции и покупки
+    const [transactions, orders] = await Promise.all([
+      db.transaction.findAll({
+        include: [
+          {
+            model: db.user,
+            as: 'sender',
+            attributes: ['id', 'username', 'firstName', 'lastName']
+          },
+          {
+            model: db.user,
+            as: 'receiver',
+            attributes: ['id', 'username', 'firstName', 'lastName']
+          }
+        ],
+        order: [['transactionDate', 'DESC']]
+      }),
+      db.order.findAll({
+        include: [
+          {
+            model: db.user,
+            as: 'user',
+            attributes: ['id', 'username', 'firstName', 'lastName']
+          },
+          {
+            model: db.advertisement,
+            as: 'advertisement',
+            include: [
+              {
+                model: db.user,
+                as: 'user',
+                attributes: ['id', 'username', 'firstName', 'lastName']
+              }
+            ]
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      })
+    ]);
+    
+    // Объединяем транзакции и покупки
+    const allTransactions = [];
+    
+    // Добавляем обычные транзакции
+    transactions.forEach(transaction => {
+      allTransactions.push({
+        id: transaction.id,
+        type: transaction.type,
+        amount: transaction.amount,
+        sender: transaction.sender,
+        receiver: transaction.receiver,
+        description: transaction.description,
+        status: transaction.status,
+        createdAt: transaction.createdAt,
+        transactionDate: transaction.transactionDate,
+        completedAt: transaction.completedAt,
+        referenceType: transaction.referenceType,
+        referenceId: transaction.referenceId,
+        isPurchase: false
+      });
     });
-    res.json(transactions);
+    
+    // Добавляем покупки как транзакции
+    orders.forEach(order => {
+      allTransactions.push({
+        id: `order_${order.id}`,
+        type: 'purchase',
+        amount: order.totalPrice,
+        sender: order.user,
+        receiver: order.advertisement.user,
+        description: `Покупка товара: ${order.advertisement.title}`,
+        status: order.status,
+        createdAt: order.createdAt,
+        orderDate: order.orderDate,
+        completedAt: order.createdAt,
+        referenceType: 'order',
+        referenceId: order.id,
+        isPurchase: true,
+        paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod
+      });
+    });
+    
+    // Сортируем по дате
+    allTransactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.json(allTransactions);
   } catch (error) {
     res.status(500).send({
       message: error.message || "Ошибка получения транзакций"
