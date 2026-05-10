@@ -128,6 +128,8 @@ exports.delete = async (req, res) => {
 // Get current user profile
 exports.getProfile = async (req, res) => {
   try {
+    console.log('🔍 getProfile - req.userId:', req.userId);
+    
     const user = await User.findByPk(req.userId, {
       attributes: { exclude: ['password'] },
       include: [
@@ -152,8 +154,16 @@ exports.getProfile = async (req, res) => {
       });
     }
 
+    console.log('🔍 getProfile - найденный пользователь:', { 
+      id: user.id, 
+      username: user.username, 
+      role: user.role 
+    });
+    console.log('🔍 getProfile - отправляемые данные:', JSON.stringify(user, null, 2));
+
     res.send(user);
   } catch (error) {
+    console.error('❌ getProfile - ошибка:', error);
     res.status(500).send({
       message: error.message || "Ошибка получения профиля"
     });

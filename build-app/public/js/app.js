@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
             authToken = token;
             currentUser = JSON.parse(user);
             
+            console.log('🔍 Инициализация - пользователь из localStorage:', currentUser);
+            
             // Проверяем валидность пользователя
             if (currentUser && currentUser.username) {
                 // Добавляем задержку чтобы убедиться, что DOM элементы готовы
@@ -28,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     validateTokenAndLoadData();
                 }, 100);
             } else {
+                console.log('❌ Пользователь в localStorage невалидный:', currentUser);
                 clearAuthData();
                 showPage('home');
                 loadFeaturedMaterials();
@@ -39,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadFeaturedMaterials();
         }
     } else {
+        console.log('🔍 Нет токена или пользователя в localStorage');
         // Если нет токена, показываем главную страницу
         showPage('home');
         loadFeaturedMaterials();
@@ -318,10 +322,14 @@ function clearCorruptedLocalStorage() {
 // Валидировать токен и загрузить данные
 async function validateTokenAndLoadData() {
     try {
+        console.log('🔍 Валидация токена - текущий пользователь:', currentUser);
         const response = await apiRequest('/users/profile', 'GET');
+        console.log('🔍 Ответ от /users/profile:', response);
+        
         if (response) {
             // Проверяем, что ID пользователя совпадают (более надежно чем username)
             if (response.id === currentUser.id) {
+                console.log('✅ ID пользователя совпадают:', response.id);
                 currentUser = response;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 updateUIForLoggedInUser();
@@ -399,11 +407,24 @@ function clearAuthData() {
 // Загрузить данные пользователя
 async function loadUserData() {
     try {
+        console.log('🔍 loadUserData - текущий пользователь:', currentUser);
         const response = await apiRequest('/users/profile', 'GET');
+        console.log('🔍 loadUserData - ответ от API:', response);
+        
         if (response) {
-            currentUser = response;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            updateUIForLoggedInUser();
+            // Проверяем, что ID пользователя совпадают
+            if (currentUser && response.id === currentUser.id) {
+                console.log('✅ loadUserData - ID совпадают, обновляем данные');
+                currentUser = response;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUIForLoggedInUser();
+            } else {
+                console.error('❌ loadUserData - ID не совпадают! Local:', currentUser?.id, 'Server:', response.id);
+                console.error('❌ Это может быть попытка подмены, не обновляем данные');
+                // При несоответствии ID - разлогиниваем
+                logout();
+                showMessage('error', 'Ошибка безопасности. Пожалуйста, войдите снова.');
+            }
         }
     } catch (error) {
         console.error('Ошибка загрузки данных пользователя:', error);
