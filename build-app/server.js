@@ -175,53 +175,6 @@ app.get('/api/users', (req, res) => {
   res.json(users);
 });
 
-// Temporary transactions endpoint
-app.get('/api/transactions', (req, res) => {
-  const transactions = [
-    {
-      id: 1,
-      senderId: 1,
-      receiverId: 2,
-      amount: 25.00,
-      description: 'Оплата за материалы',
-      status: 'completed',
-      balanceBefore: 100.00,
-      balanceAfter: 75.00,
-      createdAt: new Date('2024-01-15T10:30:00Z'),
-      sender: { id: 1, username: 'test' },
-      receiver: { id: 2, username: 'test1' }
-    },
-    {
-      id: 2,
-      senderId: 4,
-      receiverId: 3,
-      amount: 100.00,
-      description: 'Бонус за активность',
-      status: 'completed',
-      balanceBefore: 1000.00,
-      balanceAfter: 900.00,
-      createdAt: new Date('2024-01-14T15:45:00Z'),
-      sender: { id: 4, username: 'admin' },
-      receiver: { id: 3, username: 'test2' }
-    },
-    {
-      id: 3,
-      senderId: 2,
-      receiverId: 1,
-      amount: 15.50,
-      description: 'Покупка кирпича',
-      status: 'completed',
-      balanceBefore: 50.00,
-      balanceAfter: 34.50,
-      createdAt: new Date('2024-01-15T09:20:00Z'),
-      sender: { id: 2, username: 'test1' },
-      receiver: { id: 1, username: 'test' }
-    }
-  ];
-  
-  console.log(`Возвращено транзакций: ${transactions.length}`);
-  res.json(transactions);
-});
 
 // Get purchased advertisements for current user
 app.get('/api/advertisements/purchased', async (req, res) => {
@@ -705,33 +658,6 @@ app.get('/api/advertisements', (req, res) => {
   res.json(advertisements);
 });
 
-// Transactions
-app.get('/api/transactions', (req, res) => {
-  const transactions = [
-    {
-      id: 1,
-      fromUserId: 1,
-      toUserId: 2,
-      amount: 50.00,
-      type: 'transfer',
-      status: 'completed',
-      description: 'Перевод C-коинов',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      fromUser: {
-        id: 1,
-        firstName: 'test',
-        lastName: 'user'
-      },
-      toUser: {
-        id: 2,
-        firstName: 'test1',
-        lastName: 'user1'
-      }
-    }
-  ];
-  
-  res.json(transactions);
-});
 
 
 

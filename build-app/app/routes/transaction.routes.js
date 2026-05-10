@@ -1,5 +1,6 @@
 const authJwt = require("../middleware/authJwt");
 const controller = require("../controllers/transaction.controller");
+const adminController = require("../controllers/admin.controller");
 
 module.exports = function(app) {
   app.use(function(req, res, next) {
@@ -115,7 +116,7 @@ module.exports = function(app) {
   app.get(
     "/api/transactions",
     [authJwt.verifyToken],
-    controller.findAll
+    adminController.getAllTransactions
   );
 
   /**

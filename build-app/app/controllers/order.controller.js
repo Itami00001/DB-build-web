@@ -136,6 +136,9 @@ exports.create = async (req, res) => {
       return createdOrders;
     });
 
+    console.log('✅ Заказы успешно созданы:', orders);
+    console.log('✅ Количество созданных заказов:', orders.length);
+    
     res.status(201).send({
       message: "Заказы успешно созданы",
       orders

@@ -767,6 +767,37 @@ async function apiRequest(endpoint, method = 'GET', body = null, retryCount = 0)
     }
 }
 
+// Обновить счетчики транзакций во всех местах
+async function updateTransactionCounters() {
+    try {
+        // Обновляем счетчик на главной странице
+        const stats = await apiRequest('/admin/database/stats', 'GET');
+        if (stats && stats.transactions !== undefined) {
+            const totalTransactionsElement = document.getElementById('totalTransactions');
+            if (totalTransactionsElement) {
+                totalTransactionsElement.textContent = stats.transactions;
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка обновления счетчиков транзакций:', error);
+    }
+}
+
+// Обновить все представления транзакций
+function updateAllTransactionViews() {
+    // Обновляем главную страницу если она открыта
+    const homePage = document.getElementById('homePage');
+    if (homePage && homePage.style.display !== 'none') {
+        loadHomePage();
+    }
+    
+    // Обновляем Admin панель если она открыта
+    const adminDatabasePage = document.getElementById('adminDatabaseContent');
+    if (adminDatabasePage) {
+        showAdminDatabasePage();
+    }
+}
+
 // Показать сообщение
 function showMessage(type, message) {
     const toastContainer = document.querySelector('.toast-container');
@@ -1018,6 +1049,8 @@ async function buyFromCart(cartItemId, advertisementId) {
             await validateTokenAndLoadData();
             loadAdvertisements();
             loadOrders();
+            loadTransactions(); // Обновляем транзакции
+            updateTransactionCounters(); // Обновляем счетчики
         }
     } catch (error) {
         console.error('Ошибка покупки:', error);
@@ -1217,26 +1250,47 @@ async function handleCreateAdvertisement(event) {
 // Загрузить транзакции
 async function loadTransactions() {
     try {
-        const data = await apiRequest('/transactions', 'GET');
+        console.log('🔄 Загрузка транзакций...');
+        const response = await apiRequest('/transactions', 'GET');
+        console.log('📊 Получен ответ от API:', response);
+        
+        // Извлекаем массив транзакций из ответа
+        const data = response.transactions || response;
+        console.log('📊 Получены транзакции:', data);
+        console.log('📊 Количество транзакций:', data ? data.length : 0);
+        
         const container = document.getElementById('transactionsList');
         const noTransactions = document.getElementById('noTransactions');
+        
+        console.log('📦 Контейнер найден:', !!container);
+        console.log('📦 Элемент "нет транзакций" найден:', !!noTransactions);
         
         container.innerHTML = '';
         
         if (data && Array.isArray(data) && data.length > 0) {
+            console.log('✅ Отображаем транзакции...');
             noTransactions.style.display = 'none';
-            data.forEach(transaction => {
+            data.forEach((transaction, index) => {
+                console.log(`📝 Создаем карточку транзакции ${index + 1}:`, transaction);
                 const card = createTransactionCard(transaction);
+                console.log(`📝 Карточка создана:`, card);
+                console.log(`📝 HTML карточки:`, card.outerHTML);
                 container.appendChild(card);
+                console.log(`📝 Карточка добавлена в контейнер`);
             });
+            console.log('✅ Все транзакции добавлены в DOM');
+            console.log('📝 Содержимое контейнера после добавления:', container.innerHTML);
+            console.log('📝 Количество дочерних элементов:', container.children.length);
+            console.log('📝 Стили контейнера:', getComputedStyle(container).display);
         } else {
+            console.log('⚠️ Транзакций нет или неверный формат данных');
             noTransactions.style.display = 'block';
         }
         
         // Загружаем список пользователей для формы создания транзакции
         await loadUsersForTransaction();
     } catch (error) {
-        console.error('Ошибка загрузки транзакций:', error);
+        console.error('❌ Ошибка загрузки транзакций:', error);
         document.getElementById('noTransactions').style.display = 'block';
     }
 }
@@ -1394,6 +1448,12 @@ async function handleCreateTransaction(event) {
             // Обновляем данные
             loadTransactions();
             loadUserData(); // Обновить баланс
+            updateTransactionCounters(); // Обновить счетчики транзакций
+            
+            // Принудительное обновление всех мест с транзакциями
+            setTimeout(() => {
+                updateAllTransactionViews();
+            }, 500);
         }
     } catch (error) {
         console.error('Ошибка создания транзакции:', error);
@@ -1497,15 +1557,21 @@ async function loadAdminDatabase() {
 // Загрузить данные таблицы
 async function loadTableData(tableName) {
     try {
-        const data = await apiRequest(`/admin/table/${tableName}`, 'GET');
+        // Для транзакций используем специальный маршрут
+        const endpoint = tableName === 'transactions' ? '/admin/transactions' : `/admin/table/${tableName}`;
+        const data = await apiRequest(endpoint, 'GET');
         if (data) {
             const container = document.getElementById('tableDataContainer');
+            
+            // Для транзакций data - это массив, для других таблиц - объект с полем data
+            const tableData = Array.isArray(data) ? data : data.data;
+            const totalRecords = Array.isArray(data) ? data.length : data.total;
             
             let html = `
                 <div class="card">
                     <div class="card-header">
                         <h5>Таблица: ${tableName}</h5>
-                        <small>Всего записей: ${data.total}</small>
+                        <small>Всего записей: ${totalRecords}</small>
                     </div>
                     <div class="card-body">
                         <div class="table-container">
@@ -1515,15 +1581,15 @@ async function loadTableData(tableName) {
             `;
             
             // Заголовки таблицы
-            if (data.data.length > 0) {
-                const headers = Object.keys(data.data[0]);
+            if (tableData.length > 0) {
+                const headers = Object.keys(tableData[0]);
                 headers.forEach(header => {
                     html += `<th>${header}</th>`;
                 });
                 html += '</tr></thead><tbody>';
                 
                 // Данные таблицы
-                data.data.forEach(row => {
+                tableData.forEach(row => {
                     html += '<tr>';
                     headers.forEach(header => {
                         let value = row[header];
