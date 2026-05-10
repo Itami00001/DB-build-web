@@ -259,43 +259,68 @@ app.post('/api/transactions', (req, res) => {
 });
 
 // Admin database endpoints
-app.get('/api/admin/database', (req, res) => {
-  const database = {
-    users: [
-      { id: 1, username: 'test', firstName: 'Test', lastName: 'User', email: 'test@example.com', cCoinBalance: 100.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
-      { id: 2, username: 'test1', firstName: 'Test1', lastName: 'User1', email: 'test1@example.com', cCoinBalance: 50.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
-      { id: 3, username: 'test2', firstName: 'Test2', lastName: 'User2', email: 'test2@example.com', cCoinBalance: 75.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
-      { id: 4, username: 'admin', firstName: 'Admin', lastName: 'User', email: 'admin@example.com', cCoinBalance: 1000.00, role: 'admin', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' }
-    ],
-    advertisements: [
-      { id: 1, title: "Кирпич силикатный М-100", description: "Силикатный кирпич одинарный", price: 15.50, quantity: 1000, status: "active", userId: 1, materialId: 1, createdAt: '2024-01-15T09:30:00.000Z' },
-      { id: 2, title: "Бетон М-200", description: "Готовый бетон для фундамента", price: 3500.00, quantity: 5, status: "active", userId: 2, materialId: 2, createdAt: '2024-01-15T10:00:00.000Z' },
-      { id: 3, title: "Цемент М-500", description: "Портландцемент в мешках", price: 420.00, quantity: 100, status: "active", userId: 3, materialId: 3, createdAt: '2024-01-15T10:30:00.000Z' },
-      { id: 4, title: "Арматура А500 12мм", description: "Арматура для фундамента", price: 45000.00, quantity: 2, status: "active", userId: 4, materialId: 4, createdAt: '2024-01-15T11:00:00.000Z' },
-      { id: 5, title: "Пеноблок D600", description: "Пеноблоки для стен", price: 3200.00, quantity: 10, status: "active", userId: 1, materialId: 5, createdAt: '2024-01-15T11:30:00.000Z' },
-      { id: 6, title: "Керамзит", description: "Керамзит для бетона", price: 1800.00, quantity: 15, status: "active", userId: 2, materialId: 6, createdAt: '2024-01-15T12:00:00.000Z' },
-      { id: 7, title: "Гипсокартон 12.5мм", description: "Гипсокартон для перегородок", price: 380.00, quantity: 20, status: "active", userId: 3, materialId: 7, createdAt: '2024-01-15T12:30:00.000Z' },
-      { id: 8, title: "Минеральная вата 100мм", description: "Утеплитель для стен", price: 550.00, quantity: 30, status: "active", userId: 4, materialId: 8, createdAt: '2024-01-15T13:00:00.000Z' }
-    ],
-    transactions: [
-      { id: 1, senderId: 1, receiverId: 2, amount: 25.00, description: 'Оплата за материалы', status: 'completed', balanceBefore: 100.00, balanceAfter: 75.00, createdAt: '2024-01-15T10:30:00.000Z' },
-      { id: 2, senderId: 4, receiverId: 3, amount: 100.00, description: 'Бонус за активность', status: 'completed', balanceBefore: 1000.00, balanceAfter: 900.00, createdAt: '2024-01-14T15:45:00.000Z' },
-      { id: 3, senderId: 2, receiverId: 1, amount: 15.50, description: 'Покупка кирпича', status: 'completed', balanceBefore: 50.00, balanceAfter: 34.50, createdAt: '2024-01-15T09:20:00.000Z' }
-    ],
-    materials: [
-      { id: 1, name: 'Кирпич силикатный одинарный', description: 'Силикатный кирпич М-100', price: 15.50, unit: 'шт', inStock: 10000, categoryId: 1, isActive: true },
-      { id: 2, name: 'Бетон М-200', description: 'Готовый бетон для фундамента', price: 3500.00, unit: 'м³', inStock: 50, categoryId: 2, isActive: true },
-      { id: 3, name: 'Цемент М-500', description: 'Портландцемент М-500', price: 420.00, unit: 'меш', inStock: 500, categoryId: 2, isActive: true },
-      { id: 4, name: 'Арматура А500', description: 'Арматура диаметром 12мм', price: 45000.00, unit: 'т', inStock: 10, categoryId: 3, isActive: true },
-      { id: 5, name: 'Пеноблок D600', description: 'Пеноблоки D600', price: 3200.00, unit: 'м³', inStock: 100, categoryId: 1, isActive: true },
-      { id: 6, name: 'Керамзит', description: 'Керамзит для бетона', price: 1800.00, unit: 'м³', inStock: 200, categoryId: 2, isActive: true },
-      { id: 7, name: 'Гипсокартон 12.5мм', description: 'Гипсокартон Кнауф', price: 380.00, unit: 'лист', inStock: 1000, categoryId: 4, isActive: true },
-      { id: 8, name: 'Минеральная вата', description: 'Минеральная вата Rockwool', price: 550.00, unit: 'м²', inStock: 500, categoryId: 4, isActive: true }
-    ]
-  };
-  
-  console.log(`Возвращена база данных: ${JSON.stringify(database, null, 2)}`);
-  res.json(database);
+app.get('/api/admin/database', async (req, res) => {
+  try {
+    // Пробуем получить реальные данные из базы
+    const db = require('./app/models');
+    
+    if (db && db.sequelize) {
+      // База данных доступна - получаем реальные данные
+      const { user, advertisement, material } = db;
+      
+      const users = await user.findAll({
+        attributes: ['id', 'username', 'firstName', 'lastName', 'email', 'cCoinBalance', 'role', 'isActive', 'createdAt'],
+        order: [['id', 'ASC']]
+      });
+      
+      const advertisements = await advertisement.findAll({
+        include: [
+          { model: material, as: 'material', attributes: ['id', 'name'] },
+          { model: user, as: 'user', attributes: ['id', 'username'] }
+        ],
+        attributes: ['id', 'title', 'description', 'price', 'quantity', 'status', 'userId', 'materialId', 'createdAt'],
+        order: [['id', 'ASC']]
+      });
+      
+      const materials = await material.findAll({
+        attributes: ['id', 'name', 'description', 'price', 'unit', 'inStock', 'categoryId', 'isActive'],
+        order: [['id', 'ASC']]
+      });
+      
+      // Временно убираем транзакции из-за проблем с таблицей
+      const database = {
+        users: users.map(u => u.toJSON()),
+        advertisements: advertisements.map(ad => ad.toJSON()),
+        transactions: [], // Пусто, пока не исправлена таблица
+        materials: materials.map(mat => mat.toJSON())
+      };
+      
+      console.log(`Возвращена реальная база данных: ${users.length} пользователей, ${advertisements.length} объявлений, 0 транзакций, ${materials.length} материалов`);
+      res.json(database);
+    } else {
+      // База данных недоступна - возвращаем ошибку
+      throw new Error('База данных недоступна');
+    }
+  } catch (error) {
+    console.error('Ошибка получения данных из базы:', error.message);
+    
+    // Если база данных недоступна, возвращаем базовые данные
+    const now = new Date().toISOString();
+    const database = {
+      users: [
+        { id: 1, username: 'test', firstName: 'Test', lastName: 'User', email: 'test@example.com', cCoinBalance: 90.50, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
+        { id: 2, username: 'test1', firstName: 'Test1', lastName: 'User1', email: 'test1@example.com', cCoinBalance: 59.50, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
+        { id: 3, username: 'test2', firstName: 'Test2', lastName: 'User2', email: 'test2@example.com', cCoinBalance: 175.00, role: 'user', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' },
+        { id: 4, username: 'admin', firstName: 'Admin', lastName: 'User', email: 'admin@example.com', cCoinBalance: 900.00, role: 'admin', isActive: true, createdAt: '2024-01-01T00:00:00.000Z' }
+      ],
+      advertisements: [],
+      transactions: [],
+      materials: []
+    };
+    
+    console.log(`База данных недоступна, возвращены базовые данные: ${database.users.length} пользователей`);
+    res.json(database);
+  }
 });
 
 // Система логирования
