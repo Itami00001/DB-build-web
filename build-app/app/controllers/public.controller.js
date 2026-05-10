@@ -26,11 +26,20 @@ exports.getPublicStats = async (req, res) => {
       activeAdvertisementsCount = advertisementCount;
     }
 
+    // Получаем количество транзакций
+    let transactionCount = 0;
+    try {
+      transactionCount = await db.transaction.count();
+    } catch (error) {
+      console.error("Ошибка получения количества транзакций:", error);
+      transactionCount = 0;
+    }
+
     const stats = {
       totalUsers: userCount,
       totalMaterials: materialCount,
       totalAdvertisements: advertisementCount,
-      totalTransactions: 0, // Транзакции暂时 не реализованы
+      totalTransactions: transactionCount,
       activeAdvertisements: activeAdvertisementsCount,
       totalCategories: categoryCount
     };

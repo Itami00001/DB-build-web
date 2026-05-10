@@ -235,7 +235,7 @@ app.get('/api/admin/database', async (req, res) => {
     
     if (db && db.sequelize) {
       // База данных доступна - получаем реальные данные
-      const { user, advertisement, material } = db;
+      const { user, advertisement, material, transaction } = db;
       
       const users = await user.findAll({
         attributes: ['id', 'username', 'firstName', 'lastName', 'email', 'cCoinBalance', 'role', 'isActive', 'createdAt'],
@@ -256,15 +256,23 @@ app.get('/api/admin/database', async (req, res) => {
         order: [['id', 'ASC']]
       });
       
-      // Временно убираем транзакции из-за проблем с таблицей
+      // Получаем реальные транзакции из базы данных
+      const transactions = await transaction.findAll({
+        include: [
+          { model: user, as: 'sender', attributes: ['id', 'username', 'firstName', 'lastName'] },
+          { model: user, as: 'receiver', attributes: ['id', 'username', 'firstName', 'lastName'] }
+        ],
+        order: [['createdAt', 'DESC']]
+      });
+      
       const database = {
         users: users.map(u => u.toJSON()),
         advertisements: advertisements.map(ad => ad.toJSON()),
-        transactions: [], // Пусто, пока не исправлена таблица
+        transactions: transactions.map(t => t.toJSON()),
         materials: materials.map(mat => mat.toJSON())
       };
       
-      console.log(`Возвращена реальная база данных: ${users.length} пользователей, ${advertisements.length} объявлений, 0 транзакций, ${materials.length} материалов`);
+      console.log(`Возвращена реальная база данных: ${users.length} пользователей, ${advertisements.length} объявлений, ${transactions.length} транзакций, ${materials.length} материалов`);
       res.json(database);
     } else {
       // База данных недоступна - возвращаем ошибку
