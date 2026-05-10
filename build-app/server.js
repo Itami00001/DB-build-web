@@ -858,6 +858,64 @@ async function startServer() {
       }
     }
     
+    // Дополнительно создаем таблицу order через SQL если не создалась
+    try {
+      await db.sequelize.query(`
+        CREATE TABLE IF NOT EXISTS "order" (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          advertisement_id INTEGER NOT NULL,
+          quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0.01),
+          total_price DECIMAL(10,2) NOT NULL CHECK (total_price >= 0),
+          status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'refunded')),
+          payment_status VARCHAR(20) DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed', 'refunded')),
+          payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('c-coin', 'cash', 'card')),
+          delivery_address JSONB,
+          tracking_number VARCHAR(255),
+          notes TEXT,
+          order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          delivery_date TIMESTAMP,
+          cancelled_at TIMESTAMP,
+          cancellation_reason TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP
+        );
+      `);
+      console.log('✅ Таблица order создана через SQL.');
+    } catch (err) {
+      console.log('❌ Ошибка создания таблицы order через SQL:', err.message);
+    }
+    
+    // Дополнительно создаем таблицу transaction через SQL если не создалась
+    try {
+      await db.sequelize.query(`
+        CREATE TABLE IF NOT EXISTS "transaction" (
+          id SERIAL PRIMARY KEY,
+          sender_id INTEGER NOT NULL,
+          receiver_id INTEGER NOT NULL,
+          amount DECIMAL(10,2) NOT NULL CHECK (amount >= 0.01),
+          type VARCHAR(20) NOT NULL CHECK (type IN ('transfer', 'purchase', 'reward', 'refund')),
+          status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
+          description TEXT,
+          reference_id INTEGER,
+          reference_type VARCHAR(20) CHECK (reference_type IN ('order', 'advertisement', 'admin_reward')),
+          transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed_at TIMESTAMP,
+          failed_at TIMESTAMP,
+          failure_reason TEXT,
+          balance_before DECIMAL(10,2) NOT NULL,
+          balance_after DECIMAL(10,2) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP
+        );
+      `);
+      console.log('✅ Таблица transaction создана через SQL.');
+    } catch (err) {
+      console.log('❌ Ошибка создания таблицы transaction через SQL:', err.message);
+    }
+    
     // Запуск сервера
     app.listen(PORT, () => {
       // Инициализация системных событий терминала

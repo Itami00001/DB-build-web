@@ -8,6 +8,9 @@ const { Op } = db.Sequelize;
 exports.create = async (req, res) => {
   try {
     const { cartItemIds, deliveryAddress, paymentMethod, notes } = req.body;
+    
+    console.log('🛒 Создание заказа. cartItemIds:', cartItemIds);
+    console.log('🛒 Тело запроса:', req.body);
 
     // Get cart items
     const cartItems = await db.cart.findAll({
@@ -49,10 +52,20 @@ exports.create = async (req, res) => {
       const createdOrders = [];
 
       for (const cartItem of cartItems) {
+        console.log('🛒 Обработка элемента корзины:', cartItem);
         const advertisement = cartItem.advertisement;
+        const itemQuantity = parseFloat(cartItem.quantity);
+        
+        console.log('🛒 Quantity:', cartItem.quantity, '->', itemQuantity);
+        
+        // Validate quantity
+        if (isNaN(itemQuantity) || itemQuantity < 0.01) {
+          console.error('❌ Некорректное количество:', cartItem.quantity, 'для товара:', advertisement?.title);
+          throw new Error(`Некорректное количество для товара: ${advertisement.title}. Требуемое количество: от 0.01`);
+        }
 
         // Check if still available
-        if (parseFloat(cartItem.quantity) > parseFloat(advertisement.quantity)) {
+        if (itemQuantity > parseFloat(advertisement.quantity)) {
           throw new Error(`Недостаточное количество для товара: ${advertisement.title}`);
         }
 
@@ -60,30 +73,37 @@ exports.create = async (req, res) => {
         const order = await Order.create({
           userId: req.userId,
           advertisementId: advertisement.id,
-          quantity: cartItem.quantity,
-          totalPrice: cartItem.totalPrice,
+          quantity: itemQuantity,
+          totalPrice: parseFloat(cartItem.totalPrice),
           paymentMethod,
           deliveryAddress,
           notes,
           status: 'pending',
-          paymentStatus: paymentMethod === 'c-coin' ? 'pending' : 'pending'
+          paymentStatus: 'pending'
         }, { transaction: t });
 
-        // Update advertisement quantity
-        await advertisement.update({
-          quantity: parseFloat(advertisement.quantity) - parseFloat(cartItem.quantity)
-        }, { transaction: t });
+    // Update advertisement quantity and status
+    await advertisement.update({
+      quantity: 0.01,
+      status: 'inactive'
+    }, { transaction: t });
 
         // Process C-coin payment
         if (paymentMethod === 'c-coin') {
+          const transactionAmount = parseFloat(cartItem.totalPrice);
+          const buyerBalanceBefore = parseFloat(user.cCoinBalance);
+          const seller = await User.findByPk(advertisement.userId);
+          const sellerBalanceBefore = parseFloat(seller.cCoinBalance);
+          
+          // Create transaction record
           await db.transaction.create({
             senderId: req.userId,
             receiverId: advertisement.userId,
-            amount: parseFloat(cartItem.totalPrice),
+            amount: transactionAmount,
             type: 'purchase',
             description: `Оплата заказа #${order.id}`,
-            balanceBefore: parseFloat(user.cCoinBalance),
-            balanceAfter: parseFloat(user.cCoinBalance) - parseFloat(cartItem.totalPrice),
+            balanceBefore: buyerBalanceBefore,
+            balanceAfter: buyerBalanceBefore - transactionAmount,
             status: 'completed',
             completedAt: new Date(),
             referenceId: order.id,
@@ -91,14 +111,13 @@ exports.create = async (req, res) => {
           }, { transaction: t });
 
           // Update seller balance
-          const seller = await User.findByPk(advertisement.userId);
           await seller.update({
-            cCoinBalance: parseFloat(seller.cCoinBalance) + parseFloat(cartItem.totalPrice)
+            cCoinBalance: sellerBalanceBefore + transactionAmount
           }, { transaction: t });
 
           // Update buyer balance
           await user.update({
-            cCoinBalance: parseFloat(user.cCoinBalance) - parseFloat(cartItem.totalPrice)
+            cCoinBalance: buyerBalanceBefore - transactionAmount
           }, { transaction: t });
 
           // Update order payment status
@@ -125,6 +144,8 @@ exports.create = async (req, res) => {
       orders
     });
   } catch (error) {
+    console.error('❌ Ошибка создания заказа:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).send({
       message: error.message || "Ошибка создания заказа"
     });
@@ -134,18 +155,11 @@ exports.create = async (req, res) => {
 // Get all orders for current user
 exports.findAll = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
-    const status = req.query.status;
-    const paymentStatus = req.query.paymentStatus;
-
-    const where = { userId: req.userId };
-    if (status) where.status = status;
-    if (paymentStatus) where.paymentStatus = paymentStatus;
 
     const { count, rows } = await Order.findAndCountAll({
-      where,
+      where: { userId: req.userId },
       include: [
         {
           model: Advertisement,
@@ -153,19 +167,7 @@ exports.findAll = async (req, res) => {
           include: [
             {
               model: db.material,
-              as: 'material',
-              include: [
-                {
-                  model: db.materialCategory,
-                  as: 'category',
-                  attributes: ['id', 'name']
-                }
-              ]
-            },
-            {
-              model: db.user,
-              as: 'user',
-              attributes: ['id', 'username', 'firstName', 'lastName', 'phone']
+              as: 'material'
             }
           ]
         }

@@ -1,10 +1,10 @@
 module.exports = (sequelize, Sequelize) => {
-  const Order = sequelize.define("order", {
+  const Order = sequelize.define("orders", {
     userId: {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: 'users',
+        model: 'user',
         key: 'id'
       },
       onDelete: 'CASCADE',
@@ -14,7 +14,7 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.INTEGER,
       allowNull: false,
       references: {
-        model: 'advertisements',
+        model: 'advertisement',
         key: 'id'
       },
       onDelete: 'CASCADE',
@@ -78,7 +78,9 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.TEXT,
       allowNull: true
     }
-  });
+  }, {
+  tableName: 'orders'
+});
 
   return Order;
 };

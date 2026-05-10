@@ -7,7 +7,13 @@ const { Op } = db.Sequelize;
 exports.create = async (req, res) => {
   try {
     const { advertisementId } = req.body;
-    const quantity = req.body.quantity ?? 1;
+    let quantity = req.body.quantity ?? 1;
+    
+    // Validate and sanitize quantity
+    quantity = parseFloat(quantity);
+    if (isNaN(quantity) || quantity < 0.01) {
+      quantity = 1;
+    }
 
     // Check if advertisement exists and is active
     const advertisement = await Advertisement.findByPk(advertisementId);
@@ -45,7 +51,9 @@ exports.create = async (req, res) => {
 
     if (existingCartItem) {
       // Update quantity
-      const newQuantity = parseFloat(existingCartItem.quantity) + parseFloat(quantity);
+      const currentQuantity = parseFloat(existingCartItem.quantity) || 0;
+      const newQuantity = currentQuantity + quantity;
+      
       if (newQuantity > parseFloat(advertisement.quantity)) {
         return res.status(400).send({
           message: "Недостаточное количество товара"
@@ -68,8 +76,8 @@ exports.create = async (req, res) => {
     const cartItem = await Cart.create({
       userId: req.userId,
       advertisementId,
-      quantity,
-      price: advertisement.price,
+      quantity: parseFloat(quantity),
+      price: parseFloat(advertisement.price),
       totalPrice: parseFloat(quantity) * parseFloat(advertisement.price)
     });
 
@@ -118,7 +126,15 @@ exports.findAll = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
-    const { quantity } = req.body;
+    let { quantity } = req.body;
+    
+    // Validate and sanitize quantity
+    quantity = parseFloat(quantity);
+    if (isNaN(quantity) || quantity < 0.01) {
+      return res.status(400).send({
+        message: "Некорректное количество. Минимальное значение: 0.01"
+      });
+    }
 
     const cartItem = await Cart.findByPk(id, {
       include: [
@@ -310,8 +326,8 @@ exports.purchase = async (req, res) => {
     await buyer.update({ cCoinBalance: buyerBalance - price });
     await seller.update({ cCoinBalance: sellerBalance + price });
 
-    // Update advertisement status to sold
-    await cartItem.advertisement.update({ status: 'sold' });
+    // Update advertisement status to inactive
+    await cartItem.advertisement.update({ status: 'inactive' });
 
     // Remove from cart
     await cartItem.destroy();

@@ -556,6 +556,12 @@ function createCartItem(item) {
     const col = document.createElement('div');
     col.className = 'col-md-12 mb-3';
     
+    // Валидация данных элемента корзины
+    if (!item || !item.id || !item.advertisementId) {
+        console.error('❌ Некорректный элемент корзины:', item);
+        return col; // Возвращаем пустой элемент
+    }
+    
     col.innerHTML = `
         <div class="card">
             <div class="card-body">
@@ -564,6 +570,9 @@ function createCartItem(item) {
                         <h5 class="card-title mb-1">${item.advertisement?.title || 'Товар'}</h5>
                         <p class="card-text mb-1">
                             <strong>Цена: ${item.price} C</strong>
+                        </p>
+                        <p class="card-text mb-1">
+                            <small>Количество: ${item.quantity || 0}</small>
                         </p>
                         <p class="card-text mb-1">
                             <small>Продавец: ${item.advertisement?.user?.username || 'Не указан'}</small>
@@ -591,7 +600,7 @@ function createAdvertisementCard(advertisement) {
     col.className = 'col-md-6 mb-4';
     
     // Проверяем статус объявления
-    const isSold = advertisement.status === 'sold';
+    const isInactive = advertisement.status === 'sold' || advertisement.status === 'inactive';
     const isOwnAdvertisement = currentUser && advertisement.userId === currentUser.id;
     
     col.innerHTML = `
@@ -611,8 +620,14 @@ function createAdvertisementCard(advertisement) {
                 <p class="card-text">
                     <small>Продавец: ${advertisement.user ? advertisement.user.username : 'Не указан'}</small>
                 </p>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    ${isInactive ? 
+                        '<span class="badge bg-danger">Не активно</span>' : 
+                        '<span class="badge bg-success">Активно</span>'
+                    }
+                </div>
                 <div class="d-flex justify-content-between">
-                    ${isSold ? 
+                    ${isInactive ? 
                         '<span class="badge bg-danger">Продано</span>' : 
                         (isOwnAdvertisement ? 
                             '<span class="badge bg-secondary">Ваше объявление</span>' : 
@@ -628,6 +643,37 @@ function createAdvertisementCard(advertisement) {
     `;
     
     return col;
+}
+
+// Генерировать звездный рейтинг
+function getStatusClass(status) {
+    const classes = {
+        'pending': 'bg-warning text-dark',
+        'confirmed': 'bg-info text-white',
+        'shipped': 'bg-primary text-white',
+        'delivered': 'bg-success text-white',
+        'cancelled': 'bg-danger text-white',
+        'refunded': 'bg-secondary text-white',
+        'active': 'bg-success',
+        'sold': 'bg-danger',
+        'inactive': 'bg-secondary'
+    };
+    return classes[status] || 'bg-secondary text-white';
+}
+
+function getStatusText(status) {
+    const texts = {
+        'pending': 'В обработке',
+        'confirmed': 'Подтвержден',
+        'shipped': 'Отправлен',
+        'delivered': 'Доставлен',
+        'cancelled': 'Отменен',
+        'refunded': 'Возврат',
+        'active': 'Активно',
+        'sold': 'Продано',
+        'inactive': 'Неактивно'
+    };
+    return texts[status] || status;
 }
 
 // Генерировать звездный рейтинг
@@ -648,17 +694,6 @@ function generateStarRating(rating) {
     }
     
     return html;
-}
-
-// Получить текст статуса
-function getStatusText(status) {
-    const statusMap = {
-        'active': 'Активно',
-        'sold': 'Продано',
-        'inactive': 'Неактивно',
-        'reserved': 'Забронировано'
-    };
-    return statusMap[status] || status;
 }
 
 // API запрос
@@ -898,12 +933,21 @@ function createOrderCard(order) {
             </div>
             <div class="card-body">
                 <p class="mb-1"><strong>Дата:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
-                <p class="mb-1"><strong>Сумма:</strong> ${order.totalPrice} C</p>
-                <p class="mb-1"><strong>Товаров:</strong> ${order.orderItems?.length || 0}</p>
+                <p class="mb-1"><strong>Сумма:</strong> ${parseFloat(order.totalPrice).toFixed(2)} C</p>
+                <p class="mb-1"><strong>Количество:</strong> ${parseFloat(order.quantity).toFixed(2)}</p>
                 <div class="mt-2">
                     <small class="text-muted">
-                        ${order.orderItems?.slice(0, 2).map(item => item.name || item.material?.name).join(', ') || 'Товары'}
-                        ${order.orderItems?.length > 2 ? '...' : ''}
+                        <strong>Товар:</strong> ${order.advertisement?.title || 'Неизвестный товар'}
+                    </small>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <strong>Материал:</strong> ${order.advertisement?.material?.name || 'Не указан'}
+                    </small>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <strong>Продавец:</strong> ${order.advertisement?.user?.username || 'Не указан'}
                     </small>
                 </div>
             </div>
@@ -953,6 +997,11 @@ async function addToCart(advertisementId) {
 async function buyFromCart(cartItemId, advertisementId) {
     try {
         showLoading();
+        
+        // Валидация cartItemId
+        if (!cartItemId || isNaN(parseInt(cartItemId))) {
+            throw new Error('Некорректный ID элемента корзины');
+        }
 
         const response = await apiRequest('/orders', 'POST', {
             cartItemIds: [cartItemId],
