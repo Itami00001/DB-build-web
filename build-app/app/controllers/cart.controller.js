@@ -6,7 +6,8 @@ const { Op } = db.Sequelize;
 // Add item to cart
 exports.create = async (req, res) => {
   try {
-    const { advertisementId, quantity } = req.body;
+    const { advertisementId } = req.body;
+    const quantity = req.body.quantity ?? 1;
 
     // Check if advertisement exists and is active
     const advertisement = await Advertisement.findByPk(advertisementId);
@@ -91,25 +92,7 @@ exports.findAll = async (req, res) => {
       include: [
         {
           model: Advertisement,
-          as: 'advertisement',
-          include: [
-            {
-              model: db.material,
-              as: 'material',
-              include: [
-                {
-                  model: db.materialCategory,
-                  as: 'category',
-                  attributes: ['id', 'name']
-                }
-              ]
-            },
-            {
-              model: db.user,
-              as: 'user',
-              attributes: ['id', 'username', 'firstName', 'lastName']
-            }
-          ]
+          as: 'advertisement'
         }
       ],
       order: [['addedAt', 'DESC']]
@@ -124,6 +107,7 @@ exports.findAll = async (req, res) => {
       count: cartItems.length
     });
   } catch (error) {
+    console.error('Ошибка получения корзины:', error);
     res.status(500).send({
       message: error.message || "Ошибка получения корзины"
     });
@@ -184,26 +168,35 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('🗑️ Удаление элемента корзины ID:', id, 'для пользователя:', req.userId);
 
     const cartItem = await Cart.findByPk(id);
+    console.log('🗑️ Найденный элемент корзины:', cartItem);
+    
     if (!cartItem) {
+      console.log('❌ Элемент корзины не найден');
       return res.status(404).send({
         message: "Элемент корзины не найден"
       });
     }
 
+    console.log('🗑️ userId элемента:', cartItem.userId, 'req.userId:', req.userId);
+    
     if (cartItem.userId !== req.userId) {
+      console.log('❌ Доступ запрещен - не ваш элемент');
       return res.status(403).send({
         message: "Доступ запрещен"
       });
     }
 
     await cartItem.destroy();
+    console.log('✅ Элемент корзины удален');
 
     res.send({
       message: "Товар удален из корзины"
     });
   } catch (error) {
+    console.error('❌ Ошибка удаления из корзины:', error);
     res.status(500).send({
       message: error.message || "Ошибка удаления товара из корзины"
     });
@@ -255,6 +248,81 @@ exports.getSummary = async (req, res) => {
   } catch (error) {
     res.status(500).send({
       message: error.message || "Ошибка получения сводки корзины"
+    });
+  }
+};
+
+// Purchase item from cart
+exports.purchase = async (req, res) => {
+  try {
+    const { cartItemId, advertisementId } = req.body;
+
+    // Get cart item
+    const cartItem = await Cart.findByPk(cartItemId, {
+      include: [
+        {
+          model: Advertisement,
+          as: 'advertisement'
+        }
+      ]
+    });
+
+    if (!cartItem) {
+      return res.status(404).send({
+        message: "Элемент корзины не найден"
+      });
+    }
+
+    if (cartItem.userId !== req.userId) {
+      return res.status(403).send({
+        message: "Доступ запрещен"
+      });
+    }
+
+    if (cartItem.advertisement.status !== 'active') {
+      return res.status(400).send({
+        message: "Объявление неактивно"
+      });
+    }
+
+    // Get user and check balance
+    const User = db.user;
+    const buyer = await User.findByPk(req.userId);
+    const seller = await User.findByPk(cartItem.advertisement.userId);
+
+    if (!buyer || !seller) {
+      return res.status(404).send({
+        message: "Пользователь не найден"
+      });
+    }
+
+    const buyerBalance = parseFloat(buyer.cCoinBalance || 0);
+    const sellerBalance = parseFloat(seller.cCoinBalance || 0);
+    const price = parseFloat(cartItem.totalPrice);
+
+    if (buyerBalance < price) {
+      return res.status(400).send({
+        message: "Недостаточно C-coin на балансе"
+      });
+    }
+
+    // Update balances
+    await buyer.update({ cCoinBalance: buyerBalance - price });
+    await seller.update({ cCoinBalance: sellerBalance + price });
+
+    // Update advertisement status to sold
+    await cartItem.advertisement.update({ status: 'sold' });
+
+    // Remove from cart
+    await cartItem.destroy();
+
+    res.send({
+      message: "Товар успешно куплен",
+      advertisement: cartItem.advertisement
+    });
+  } catch (error) {
+    res.status(500).send({
+      message: error.message || "Ошибка покупки"
     });
   }
 };

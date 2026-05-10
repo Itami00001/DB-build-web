@@ -27,6 +27,7 @@ db.materialCategories = require("./materialCategory.model")(sequelize, Sequelize
 db.material = require("./material.model")(sequelize, Sequelize);
 db.advertisement = require("./advertisement.model")(sequelize, Sequelize);
 db.order = require("./order.model")(sequelize, Sequelize);
+db.orderItem = require("./orderItem.model")(sequelize, Sequelize);
 db.transaction = require("./transaction.model")(sequelize, Sequelize);
 db.cart = require("./cart.model")(sequelize, Sequelize);
 db.review = require("./review.model")(sequelize, Sequelize);

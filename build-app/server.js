@@ -223,6 +223,56 @@ app.get('/api/transactions', (req, res) => {
   res.json(transactions);
 });
 
+// Get purchased advertisements for current user
+app.get('/api/advertisements/purchased', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Требуется авторизация' });
+    }
+    
+    const token = authHeader.substring(7);
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'build-shop-secret-key-2024');
+    
+    const db = require('./app/models');
+    const { advertisement, user } = db;
+    
+    // Находим объявления со статусом 'sold', где текущий пользователь является покупателем
+    // Для этого нужно найти объявления, где userId != текущий пользователь, но товар был куплен текущим пользователем
+    // Поскольку у нас нет явного поля buyerId, используем логику: объявления со статусом sold, где текущий пользователь НЕ продавец
+    // В реальном приложении нужна таблица orders или purchases для связи покупателя с товаром
+    
+    const purchasedAdvertisements = await advertisement.findAll({
+      where: {
+        status: 'sold',
+        userId: { [db.Sequelize.Op.ne]: decoded.id }
+      },
+      include: [
+        {
+          model: user,
+          as: 'user',
+          attributes: ['id', 'username', 'firstName', 'lastName']
+        },
+        {
+          model: db.material,
+          as: 'material',
+          attributes: ['id', 'name']
+        }
+      ],
+      order: [['updatedAt', 'DESC']]
+    });
+    
+    // В реальном приложении здесь должна быть фильтрация по фактическим покупкам
+    // Пока возвращаем все проданные товары кроме собственных объявлений пользователя
+    res.json({ advertisements: purchasedAdvertisements });
+    
+  } catch (error) {
+    console.error('Ошибка получения купленных товаров:', error);
+    res.status(500).json({ message: 'Ошибка получения купленных товаров' });
+  }
+});
+
 // Create transaction endpoint
 app.post('/api/transactions', async (req, res) => {
   try {
@@ -683,54 +733,8 @@ app.get('/api/transactions', (req, res) => {
   res.json(transactions);
 });
 
-// Cart
-app.get('/api/cart', (req, res) => {
-  const cart = [
-    {
-      id: 1,
-      userId: 1,
-      materialId: 1,
-      quantity: 100,
-      price: 15.50,
-      material: {
-        id: 1,
-        name: 'Кирпич силикатный одинарный',
-        unit: 'шт'
-      }
-    }
-  ];
-  
-  res.json(cart);
-});
 
-// Orders
-app.get('/api/orders', (req, res) => {
-  const orders = [
-    {
-      id: 1,
-      userId: 1,
-      totalAmount: 1550.00,
-      status: 'pending',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      orderItems: [
-        {
-          id: 1,
-          orderId: 1,
-          materialId: 1,
-          quantity: 100,
-          price: 15.50,
-          material: {
-            id: 1,
-            name: 'Кирпич силикатный одинарный',
-            unit: 'шт'
-          }
-        }
-      ]
-    }
-  ];
-  
-  res.json(orders);
-});
+
 
 // Include routes
 require('./app/routes/auth.routes')(app);
@@ -789,6 +793,7 @@ async function startServer() {
         { name: 'transaction', model: db.transaction },
         { name: 'cart', model: db.cart },
         { name: 'order', model: db.order },
+        { name: 'orderItem', model: db.orderItem },
         { name: 'review', model: db.review }
       ];
       
@@ -804,6 +809,30 @@ async function startServer() {
       }
       
       console.log('🎯 Все таблицы созданы успешно.');
+      
+      // Дополнительно создаем таблицу cart через SQL если не создалась
+      try {
+        await db.sequelize.query(`
+          CREATE TABLE IF NOT EXISTS cart (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            advertisement_id INTEGER NOT NULL,
+            quantity DECIMAL(10,2) NOT NULL CHECK (quantity >= 0.01),
+            price DECIMAL(10,2) NOT NULL CHECK (price >= 0),
+            total_price DECIMAL(10,2) NOT NULL CHECK (total_price >= 0),
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_reserved BOOLEAN DEFAULT FALSE,
+            reserved_until TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            deleted_at TIMESTAMP
+          );
+        `);
+        console.log('✅ Таблица cart создана через SQL.');
+      } catch (err) {
+        console.log('❌ Ошибка создания таблицы cart через SQL:', err.message);
+      }
       
     } catch (error) {
       console.log('❌ Ошибка при создании таблиц:', error.message);

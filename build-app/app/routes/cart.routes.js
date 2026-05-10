@@ -235,4 +235,44 @@ module.exports = function(app) {
     [authJwt.verifyToken],
     controller.getSummary
   );
+
+  /**
+   * @swagger
+   * /api/cart/purchase:
+   *   post:
+   *     summary: Купить товар из корзины
+   *     tags: [Cart]
+   *     security:
+   *       - bearerAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - cartItemId
+   *               - advertisementId
+   *             properties:
+   *               cartItemId:
+   *                 type: integer
+   *                 description: ID элемента корзины
+   *               advertisementId:
+   *                 type: integer
+   *                 description: ID объявления
+   *     responses:
+   *       200:
+   *         description: Товар успешно куплен
+   *       400:
+   *         description: Недостаточно средств или объявление неактивно
+   *       403:
+   *         description: Доступ запрещен
+   *       404:
+   *         description: Элемент корзины не найден
+   */
+  app.post(
+    "/api/cart/purchase",
+    [authJwt.verifyToken],
+    controller.purchase
+  );
 };

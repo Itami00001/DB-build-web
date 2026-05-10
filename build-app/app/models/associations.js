@@ -34,6 +34,12 @@ module.exports = (db) => {
   // Order associations
   db.order.belongsTo(db.user, { foreignKey: 'userId', as: 'user' });
   db.order.belongsTo(db.advertisement, { foreignKey: 'advertisementId', as: 'advertisement' });
+  db.order.hasMany(db.orderItem, { foreignKey: 'orderId', as: 'orderItems' });
+
+  // OrderItem associations
+  db.orderItem.belongsTo(db.order, { foreignKey: 'orderId', as: 'order' });
+  db.orderItem.belongsTo(db.material, { foreignKey: 'materialId', as: 'material' });
+
   db.order.hasOne(db.transaction, { 
     foreignKey: 'referenceId', 
     sourceKey: 'id',

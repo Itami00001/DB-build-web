@@ -399,20 +399,21 @@ async function validateTokenAndLoadData() {
 // Проверка пользователя admin/adminadmin в базе данных
 async function validateAdminUser() {
     console.log('validateAdminUser вызвана. currentUser:', currentUser);
-    
+
     if (!currentUser || !currentUser.username) {
         console.log('currentUser не существует, выходим из validateAdminUser');
         return;
     }
-    
+
     try {
         // Проверяем, является ли пользователь администратором
-        if (currentUser.username === 'admin' && currentUser.role === 'admin') {
-            console.log('✅ Пользователь admin с ролью admin подтвержден');
-            // Дополнительный запрос не нужен - данные уже получены в validateTokenAndLoadData
+        // Если role undefined, проверяем только по username
+        const isAdmin = currentUser.username === 'admin' && (currentUser.role === 'admin' || !currentUser.role);
+        if (isAdmin) {
+            console.log('✅ Пользователь admin подтвержден');
             console.log('✅ Админ-панель будет показана через updateUIForLoggedInUser');
         } else {
-            console.log('Пользователь не admin или не admin role:', currentUser.username, currentUser.role);
+            console.log('Пользователь не admin:', currentUser.username, currentUser.role);
         }
     } catch (error) {
         console.error('❌ Ошибка проверки администратора:', error);
@@ -550,10 +551,48 @@ function createMaterialCard(material) {
     return col;
 }
 
+// Создать элемент корзины
+function createCartItem(item) {
+    const col = document.createElement('div');
+    col.className = 'col-md-12 mb-3';
+    
+    col.innerHTML = `
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">${item.advertisement?.title || 'Товар'}</h5>
+                        <p class="card-text mb-1">
+                            <strong>Цена: ${item.price} C</strong>
+                        </p>
+                        <p class="card-text mb-1">
+                            <small>Продавец: ${item.advertisement?.user?.username || 'Не указан'}</small>
+                        </p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-danger btn-sm" onclick="removeFromCart(${item.id})">
+                            <i class="fas fa-trash"></i> Убрать
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="buyFromCart(${item.id}, ${item.advertisementId})">
+                            <i class="fas fa-shopping-bag"></i> Купить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return col;
+}
+
 // Создать карточку объявления
 function createAdvertisementCard(advertisement) {
     const col = document.createElement('div');
     col.className = 'col-md-6 mb-4';
+    
+    // Проверяем статус объявления
+    const isSold = advertisement.status === 'sold';
+    const isOwnAdvertisement = currentUser && advertisement.userId === currentUser.id;
     
     col.innerHTML = `
         <div class="card h-100">
@@ -573,9 +612,13 @@ function createAdvertisementCard(advertisement) {
                     <small>Продавец: ${advertisement.user ? advertisement.user.username : 'Не указан'}</small>
                 </p>
                 <div class="d-flex justify-content-between">
-                    <span class="badge ${advertisement.status === 'active' ? 'bg-success' : 'bg-secondary'}">
-                        ${getStatusText(advertisement.status)}
-                    </span>
+                    ${isSold ? 
+                        '<span class="badge bg-danger">Продано</span>' : 
+                        (isOwnAdvertisement ? 
+                            '<span class="badge bg-secondary">Ваше объявление</span>' : 
+                            '<button class="btn btn-success btn-sm" onclick="addToCart(' + advertisement.id + ')"><i class="fas fa-shopping-cart"></i> Добавить в корзину</button>'
+                        )
+                    }
                     <button class="btn btn-primary btn-sm" onclick="viewAdvertisement(${advertisement.id})">
                         <i class="fas fa-eye"></i> Подробнее
                     </button>
@@ -779,14 +822,21 @@ async function loadCart() {
         const container = document.getElementById('cartItems');
         const emptyCart = document.getElementById('emptyCart');
         
+        console.log('🛒 Данные корзины:', data);
+        
         container.innerHTML = '';
         
-        if (data && data.cartItems && data.cartItems.length > 0) {
+        // Бэкенд возвращает массив напрямую, а не объект с cartItems
+        const cartItems = Array.isArray(data) ? data : (data.cartItems || []);
+        
+        if (cartItems.length > 0) {
+            console.log('🛒 Товаров в корзине:', cartItems.length);
             emptyCart.style.display = 'none';
             let total = 0;
             let itemsCount = 0;
             
-            data.cartItems.forEach(item => {
+            cartItems.forEach(item => {
+                console.log('🛒 Элемент корзины:', item);
                 const cartItem = createCartItem(item);
                 container.appendChild(cartItem);
                 total += item.price * item.quantity;
@@ -798,6 +848,7 @@ async function loadCart() {
             document.getElementById('cartTotal').textContent = total.toFixed(2) + ' C';
             document.getElementById('cartGrandTotal').textContent = total.toFixed(2) + ' C';
         } else {
+            console.log('🛒 Корзина пуста или нет данных');
             emptyCart.style.display = 'block';
             document.getElementById('cartItemsCount').textContent = '0';
             document.getElementById('cartTotal').textContent = '0 C';
@@ -826,7 +877,7 @@ async function loadOrders() {
             noOrders.style.display = 'block';
         }
     } catch (error) {
-        console.error('Ошибка загрузки заказов:', error);
+        console.error('Ошибка загрузки покупок:', error);
         document.getElementById('noOrders').style.display = 'block';
     }
 }
@@ -885,7 +936,7 @@ function viewOrderDetails(orderId) {
 async function addToCart(advertisementId) {
     try {
         showLoading();
-        const response = await apiRequest('/cart', 'POST', { advertisementId });
+        const response = await apiRequest('/cart', 'POST', { advertisementId, quantity: 1 });
         if (response) {
             showMessage('success', 'Товар добавлен в корзину!');
             loadCart();
@@ -893,6 +944,33 @@ async function addToCart(advertisementId) {
     } catch (error) {
         console.error('Ошибка добавления в корзину:', error);
         showMessage('error', 'Ошибка добавления в корзину');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Купить товар из корзины
+async function buyFromCart(cartItemId, advertisementId) {
+    try {
+        showLoading();
+
+        const response = await apiRequest('/orders', 'POST', {
+            cartItemIds: [cartItemId],
+            paymentMethod: 'c-coin',
+            deliveryAddress: {},
+            notes: ''
+        });
+
+        if (response) {
+            showMessage('success', 'Товар успешно куплен!');
+            await loadCart();
+            await validateTokenAndLoadData();
+            loadAdvertisements();
+            loadOrders();
+        }
+    } catch (error) {
+        console.error('Ошибка покупки:', error);
+        showMessage('error', 'Ошибка покупки');
     } finally {
         hideLoading();
     }
@@ -1487,7 +1565,7 @@ async function removeFromCart(cartItemId) {
 
 // Оформить заказ
 async function checkout() {
-    showMessage('info', 'Функция оформления заказа в разработке');
+    showMessage('info', 'Используйте корзину для покупки товаров');
 }
 
 // Функции для будущей реализации
