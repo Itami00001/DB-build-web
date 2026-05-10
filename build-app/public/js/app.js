@@ -817,16 +817,8 @@ async function loadAdvertisements() {
         const timestamp = Date.now();
         const response = await apiRequest(`/advertisements?limit=100&status=all&t=${timestamp}`, 'GET');
         
-        // Временная диагностика
-        console.log('API Response:', response);
-        console.log('Response type:', typeof response);
-        console.log('Is array:', Array.isArray(response));
-        
         // Извлекаем массив объявлений из ответа
         const data = response.advertisements || response;
-        console.log('Data after extraction:', data);
-        console.log('Data length:', data ? data.length : 'undefined');
-        
         const container = document.getElementById('advertisementsList');
         const noAds = document.getElementById('noAdvertisements');
         
@@ -834,16 +826,12 @@ async function loadAdvertisements() {
         
         // API возвращает массив объявлений напрямую
         if (data && Array.isArray(data) && data.length > 0) {
-            console.log(`Processing ${data.length} advertisements`);
             noAds.style.display = 'none';
-            data.forEach((advertisement, index) => {
-                console.log(`Ad ${index}:`, advertisement.id, advertisement.title);
+            data.forEach(advertisement => {
                 const card = createAdvertisementCard(advertisement);
                 container.appendChild(card);
             });
-            console.log(`Added ${container.children.length} cards to container`);
         } else {
-            console.log('No advertisements found');
             noAds.style.display = 'block';
         }
     } catch (error) {

@@ -139,11 +139,7 @@ exports.findAll = async (req, res) => {
       order: [[sortBy, sortOrder]]
     });
 
-    // Временная диагностика
-    console.log(`Advertisements query - Status filter: ${status}, Where clause:`, JSON.stringify(where));
-    console.log(`Found ${count} advertisements total`);
-    console.log(`Advertisement statuses:`, rows.map(ad => ({ id: ad.id, title: ad.title, status: ad.status })));
-
+    
     res.send({
       advertisements: rows,
       total: count,
