@@ -576,6 +576,7 @@ require('./app/routes/cart.routes')(app);
 require('./app/routes/review.routes')(app);
 require('./app/routes/admin.routes')(app);
 require('./app/routes/admin.api.routes')(app);
+require('./app/routes/export.routes')(app);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

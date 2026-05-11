@@ -2126,21 +2126,63 @@ function showAdminLogsPage() {
     loadAdminLogs();
 }
 
-function exportToPDF(type, event) {
+async function exportToPDF(type, event) {
     if (event) {
         event.preventDefault();
         event.stopPropagation();
     }
     
-    showMessage('info', `Создание PDF для ${type}...`);
-    
-    // В реальном приложении здесь будет генерация PDF
-    setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = `data:text/plain;charset=utf-8,${encodeURIComponent(`Данные для ${type} успешно экспортированы`)}`;
-        link.download = `${type}_export.txt`;
-        link.click();
+    try {
+        showMessage('info', `Создание PDF для ${type}...`);
         
-        showMessage('success', `PDF для ${type} успешно создан`);
-    }, 1000);
+        let endpoint;
+        let filename;
+        
+        if (type === 'users') {
+            endpoint = '/export/users/pdf';
+            filename = 'users_export.pdf';
+        } else if (type === 'advertisements') {
+            endpoint = '/export/advertisements/pdf';
+            filename = 'advertisements_export.pdf';
+        } else if (type === 'transactions') {
+            endpoint = '/export/transactions/pdf';
+            filename = 'transactions_export.pdf';
+        } else {
+            throw new Error('Неизвестный тип экспорта');
+        }
+        
+        // Создаем ссылку для скачивания
+        const response = await fetch(`/api${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'x-access-token': authToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+        }
+        
+        // Получаем blob с PDF
+        const blob = await response.blob();
+        
+        // Создаем ссылку для скачивания
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Очищаем URL
+        window.URL.revokeObjectURL(url);
+        
+        showMessage('success', `PDF для ${type} успешно создан и скачан`);
+        
+    } catch (error) {
+        console.error('Ошибка экспорта в PDF:', error);
+        showMessage('error', `Ошибка создания PDF: ${error.message}`);
+    }
 }
