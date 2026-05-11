@@ -1177,6 +1177,72 @@
         </div>
     </div>
 
+    <!-- Модальное окно для создания объявления -->
+    <div class="modal fade" id="createAdModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle"></i> Создать объявление
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createAdForm">
+                        <!-- Название -->
+                        <div class="mb-3">
+                            <label for="adTitle" class="form-label">Название объявления *</label>
+                            <input type="text" class="form-control" id="adTitle" required 
+                                   placeholder="Например: Кирпич силикатный в наличии">
+                        </div>
+                        
+                        <!-- Описание -->
+                        <div class="mb-3">
+                            <label for="adDescription" class="form-label">Описание</label>
+                            <textarea class="form-control" id="adDescription" rows="3" 
+                                      placeholder="Опишите товар, его состояние, характеристики..."></textarea>
+                        </div>
+                        
+                        <!-- Материал (Accordion) -->
+                        <div class="mb-3">
+                            <label class="form-label">Материал *</label>
+                            <div class="accordion" id="materialAccordion">
+                                <!-- Будет заполнено динамически из API -->
+                            </div>
+                        </div>
+                        
+                        <!-- Цена и количество -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="adPrice" class="form-label">Цена (C) *</label>
+                                <input type="number" class="form-control" id="adPrice" step="0.01" min="0" required 
+                                       placeholder="0.00">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="adQuantity" class="form-label">Количество (шт) *</label>
+                                <input type="number" class="form-control" id="adQuantity" min="1" required 
+                                       placeholder="1">
+                            </div>
+                        </div>
+                        
+                        <!-- Информация о стоимости -->
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> 
+                            Создание объявления стоит <strong>10 C</strong>. 
+                            Сумма будет списана с вашего баланса.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" form="createAdForm" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Создать объявление
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Контейнер для уведомлений -->
     <div class="toast-container"></div>
 

@@ -84,7 +84,13 @@ function setupEventListeners() {
         element.addEventListener('click', function(e) {
             e.preventDefault();
             const page = this.getAttribute('data-page');
-            showPage(page);
+            
+            // Для создания объявления открываем модальное окно
+            if (page === 'createAdvertisement') {
+                openCreateAdModal();
+            } else {
+                showPage(page);
+            }
         });
     });
     
@@ -262,6 +268,16 @@ function updateUIForLoggedInUser() {
         if (adminNav) {
             adminNav.style.display = 'block';
         }
+    }
+    
+    // Показать кнопку "Создать объявление" и баланс для всех зарегистрированных пользователей
+    const createAdNav = document.getElementById('createAdNav');
+    const cCoinNav = document.getElementById('cCoinNav');
+    if (createAdNav) {
+        createAdNav.style.display = 'block';
+    }
+    if (cCoinNav) {
+        cCoinNav.style.display = 'block';
     }
     
     // Обновить имя пользователя и баланс
@@ -2183,6 +2199,157 @@ async function exportToPDF(type, event) {
         
     } catch (error) {
         console.error('Ошибка экспорта в PDF:', error);
-        showMessage('error', `Ошибка создания PDF: ${error.message}`);
+        showMessage('error', 'Ошибка экспорта в PDF');
     }
 }
+
+// Функция для открытия модального окна создания объявления
+function openCreateAdModal() {
+    if (!currentUser) {
+        showMessage('error', 'Для создания объявления необходимо войти в систему');
+        return;
+    }
+    
+    // Проверяем баланс
+    if (parseFloat(currentUser.cCoinBalance || 0) < 10) {
+        showMessage('error', 'Недостаточно средств. Для создания объявления нужно 10 C');
+        return;
+    }
+    
+    // Загружаем материалы для аккордеона
+    loadMaterialsForAccordion();
+    
+    // Открываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('createAdModal'));
+    modal.show();
+}
+
+// Функция для загрузки материалов в аккордеон
+async function loadMaterialsForAccordion() {
+    try {
+        const materials = await apiRequest('/materials', 'GET');
+        const accordion = document.getElementById('materialAccordion');
+        
+        if (!accordion) return;
+        
+        accordion.innerHTML = '';
+        
+        // Группируем материалы по категориям
+        const categories = {};
+        materials.forEach(material => {
+            if (!categories[material.categoryId]) {
+                categories[material.categoryId] = {
+                    name: material.category?.name || `Категория ${material.categoryId}`,
+                    materials: []
+                };
+            }
+            categories[material.categoryId].materials.push(material);
+        });
+        
+        // Создаем аккордеон
+        let categoryId = 0;
+        Object.values(categories).forEach(category => {
+            categoryId++;
+            
+            const accordionItem = document.createElement('div');
+            accordionItem.className = 'accordion-item';
+            
+            accordionItem.innerHTML = `
+                <h2 class="accordion-header" id="heading${categoryId}">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#collapse${categoryId}">
+                        ${category.name}
+                    </button>
+                </h2>
+                <div id="collapse${categoryId}" class="accordion-collapse collapse" 
+                     data-bs-parent="#materialAccordion">
+                    <div class="accordion-body">
+                        <div class="row">
+                            ${category.materials.map(material => `
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" 
+                                               name="materialId" value="${material.id}" 
+                                               id="material${material.id}">
+                                        <label class="form-check-label" for="material${material.id}">
+                                            <strong>${material.name}</strong><br>
+                                            <small class="text-muted">
+                                                ${material.price} C / ${material.unit} | 
+                                                В наличии: ${material.inStock} ${material.unit}
+                                            </small>
+                                        </label>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            accordion.appendChild(accordionItem);
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки материалов:', error);
+        showMessage('error', 'Ошибка загрузки материалов');
+    }
+}
+
+// Обработчик формы создания объявления
+document.addEventListener('DOMContentLoaded', function() {
+    const createAdForm = document.getElementById('createAdForm');
+    if (createAdForm) {
+        createAdForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                // Проверяем баланс еще раз
+                if (parseFloat(currentUser.cCoinBalance || 0) < 10) {
+                    showMessage('error', 'Недостаточно средств. Для создания объявления нужно 10 C');
+                    return;
+                }
+                
+                // Собираем данные формы
+                const formData = {
+                    title: document.getElementById('adTitle').value,
+                    description: document.getElementById('adDescription').value,
+                    materialId: document.querySelector('input[name="materialId"]:checked')?.value,
+                    price: parseFloat(document.getElementById('adPrice').value),
+                    quantity: parseFloat(document.getElementById('adQuantity').value)
+                };
+                
+                // Валидация
+                if (!formData.title || !formData.materialId || !formData.price || !formData.quantity) {
+                    showMessage('error', 'Заполните все обязательные поля');
+                    return;
+                }
+                
+                // Создаем объявление через API
+                const result = await apiRequest('/advertisements', 'POST', formData);
+                
+                if (result) {
+                    showMessage('success', 'Объявление успешно создано! 10 C списано с вашего баланса.');
+                    
+                    // Закрываем модальное окно
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('createAdModal'));
+                    modal.hide();
+                    
+                    // Очищаем форму
+                    createAdForm.reset();
+                    
+                    // Обновляем баланс пользователя
+                    await loadUserData();
+                    
+                    // Обновляем список объявлений если на странице
+                    if (document.getElementById('advertisementsContent')) {
+                        loadAdvertisements();
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Ошибка создания объявления:', error);
+                showMessage('error', 'Ошибка создания объявления: ' + (error.message || 'Неизвестная ошибка'));
+            }
+        });
+    }
+});
