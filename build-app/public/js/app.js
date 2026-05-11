@@ -608,7 +608,7 @@ function createAdvertisementCard(advertisement) {
                 <h5 class="card-title">${advertisement.title}</h5>
                 <p class="card-text">${advertisement.description || ''}</p>
                 <p class="card-text">
-                    <strong>Материал: ${advertisement.material ? advertisement.material.name : 'Не указан'}</strong>
+                    <strong>Категория: ${advertisement.category ? advertisement.category.name : 'Не указана'}</strong>
                 </p>
                 <p class="card-text">
                     <strong>Цена: ${advertisement.price} C</strong>
@@ -705,12 +705,20 @@ async function apiRequest(endpoint, method = 'GET', body = null, retryCount = 0)
         const options = {
             method,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         };
         
         if (authToken) {
-            options.headers['Authorization'] = `Bearer ${authToken}`;
+            options.headers['x-access-token'] = authToken;
+        }
+        
+        // Добавляем timestamp для предотвращения кэширования
+        let url = `${API_BASE_URL}${endpoint}`;
+        if (method === 'GET') {
+            url += `?t=${Date.now()}`;
         }
         
         if (body) {
@@ -722,7 +730,7 @@ async function apiRequest(endpoint, method = 'GET', body = null, retryCount = 0)
         const timeoutId = setTimeout(() => controller.abort(), 10000);
         options.signal = controller.signal;
         
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+        const response = await fetch(url, options);
         clearTimeout(timeoutId);
         
         if (response.status === 401) {
@@ -974,7 +982,7 @@ function createOrderCard(order) {
                 </div>
                 <div class="mt-2">
                     <small class="text-muted">
-                        <strong>Материал:</strong> ${order.advertisement?.material?.name || 'Не указан'}
+                        <strong>Категория:</strong> ${order.advertisement?.category?.name || 'Не указана'}
                     </small>
                 </div>
                 <div class="mt-2">
@@ -1702,16 +1710,6 @@ function buyItem() {
 }
 
 // Админ-панель функции
-async function loadAdminDatabase() {
-    try {
-        const data = await apiRequest('/admin/database', 'GET');
-        displayDatabase(data);
-    } catch (error) {
-        console.error('Ошибка загрузки базы данных:', error);
-        showMessage('error', 'Ошибка загрузки базы данных');
-    }
-}
-
 async function loadAdminLogs() {
     try {
         const data = await apiRequest('/admin/logs', 'GET');
@@ -2216,82 +2214,44 @@ function openCreateAdModal() {
         return;
     }
     
-    // Загружаем материалы для аккордеона
-    loadMaterialsForAccordion();
+    // Загружаем категории для выбора
+    loadCategoriesForSelection();
     
     // Открываем модальное окно
     const modal = new bootstrap.Modal(document.getElementById('createAdModal'));
     modal.show();
 }
 
-// Функция для загрузки материалов в аккордеон
-async function loadMaterialsForAccordion() {
+// Функция для загрузки категорий для выбора
+async function loadCategoriesForSelection() {
     try {
-        const materials = await apiRequest('/materials', 'GET');
+        const categories = await apiRequest('/material-categories', 'GET');
         const accordion = document.getElementById('materialAccordion');
         
         if (!accordion) return;
         
         accordion.innerHTML = '';
         
-        // Группируем материалы по категориям
-        const categories = {};
-        materials.forEach(material => {
-            if (!categories[material.categoryId]) {
-                categories[material.categoryId] = {
-                    name: material.category?.name || `Категория ${material.categoryId}`,
-                    materials: []
-                };
-            }
-            categories[material.categoryId].materials.push(material);
-        });
-        
-        // Создаем аккордеон
-        let categoryId = 0;
-        Object.values(categories).forEach(category => {
-            categoryId++;
+        // Создаем простой список категорий
+        categories.forEach(category => {
+            const categoryItem = document.createElement('div');
+            categoryItem.className = 'form-check mb-2';
             
-            const accordionItem = document.createElement('div');
-            accordionItem.className = 'accordion-item';
-            
-            accordionItem.innerHTML = `
-                <h2 class="accordion-header" id="heading${categoryId}">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                            data-bs-target="#collapse${categoryId}">
-                        ${category.name}
-                    </button>
-                </h2>
-                <div id="collapse${categoryId}" class="accordion-collapse collapse" 
-                     data-bs-parent="#materialAccordion">
-                    <div class="accordion-body">
-                        <div class="row">
-                            ${category.materials.map(material => `
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" 
-                                               name="materialId" value="${material.id}" 
-                                               id="material${material.id}">
-                                        <label class="form-check-label" for="material${material.id}">
-                                            <strong>${material.name}</strong><br>
-                                            <small class="text-muted">
-                                                ${material.price} C / ${material.unit} | 
-                                                В наличии: ${material.inStock} ${material.unit}
-                                            </small>
-                                        </label>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
+            categoryItem.innerHTML = `
+                <input class="form-check-input" type="radio" 
+                       name="categoryId" value="${category.id}" 
+                       id="category${category.id}">
+                <label class="form-check-label" for="category${category.id}">
+                    <strong>${category.name}</strong>
+                </label>
             `;
             
-            accordion.appendChild(accordionItem);
+            accordion.appendChild(categoryItem);
         });
         
     } catch (error) {
-        console.error('Ошибка загрузки материалов:', error);
-        showMessage('error', 'Ошибка загрузки материалов');
+        console.error('Ошибка загрузки категорий:', error);
+        showMessage('error', 'Ошибка загрузки категорий');
     }
 }
 
@@ -2313,13 +2273,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const formData = {
                     title: document.getElementById('adTitle').value,
                     description: document.getElementById('adDescription').value,
-                    materialId: document.querySelector('input[name="materialId"]:checked')?.value,
+                    categoryId: document.querySelector('input[name="categoryId"]:checked')?.value,
                     price: parseFloat(document.getElementById('adPrice').value),
                     quantity: parseFloat(document.getElementById('adQuantity').value)
                 };
                 
                 // Валидация
-                if (!formData.title || !formData.materialId || !formData.price || !formData.quantity) {
+                if (!formData.title || !formData.categoryId || !formData.price || !formData.quantity) {
                     showMessage('error', 'Заполните все обязательные поля');
                     return;
                 }

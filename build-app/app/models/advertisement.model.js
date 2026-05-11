@@ -11,7 +11,7 @@ module.exports = (sequelize, Sequelize) => {
       type: Sequelize.TEXT,
       allowNull: true
     },
-    materialId: {
+    categoryId: {
       type: Sequelize.INTEGER,
       allowNull: false
     },

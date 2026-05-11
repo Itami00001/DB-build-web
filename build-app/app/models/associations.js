@@ -21,12 +21,11 @@ module.exports = (db) => {
 
   // Material associations
   db.material.belongsTo(db.materialCategories, { foreignKey: 'categoryId', as: 'category' });
-  db.material.hasMany(db.advertisement, { foreignKey: 'materialId', as: 'advertisements' });
   db.material.hasMany(db.review, { foreignKey: 'materialId', as: 'reviews' });
 
   // Advertisement associations
   db.advertisement.belongsTo(db.user, { foreignKey: 'userId', as: 'user' });
-  db.advertisement.belongsTo(db.material, { foreignKey: 'materialId', as: 'material' });
+  db.advertisement.belongsTo(db.materialCategories, { foreignKey: 'categoryId', as: 'category' });
   db.advertisement.hasMany(db.order, { foreignKey: 'advertisementId', as: 'orders' });
   db.advertisement.hasMany(db.cart, { foreignKey: 'advertisementId', as: 'cartItems' });
   db.advertisement.hasMany(db.review, { foreignKey: 'advertisementId', as: 'reviews' });

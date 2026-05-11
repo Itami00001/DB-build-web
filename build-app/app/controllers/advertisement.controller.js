@@ -7,13 +7,14 @@ const { Op } = db.Sequelize;
 // Create advertisement
 exports.create = async (req, res) => {
   try {
-    const { title, description, materialId, price, quantity, location, images, contactInfo } = req.body;
+    const { title, description, categoryId, price, quantity, location, images, contactInfo } = req.body;
 
-    // Check if material exists
-    const material = await Material.findByPk(materialId);
-    if (!material) {
+    // Check if category exists
+    const MaterialCategory = db.materialCategories;
+    const category = await MaterialCategory.findByPk(categoryId);
+    if (!category) {
       return res.status(404).send({
-        message: "Материал не найден"
+        message: "Категория не найдена"
       });
     }
 
@@ -25,44 +26,28 @@ exports.create = async (req, res) => {
       });
     }
 
-    const advertisement = await db.sequelize.transaction(async (t) => {
-      // Create advertisement
-      const newAd = await Advertisement.create({
-        title,
-        description,
-        materialId,
-        userId: req.userId,
-        price,
-        quantity,
-        location,
-        images: images || [],
-        contactInfo: contactInfo || {},
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-      }, { transaction: t });
-
-      // Deduct C-coin fee
-      await user.update({
-        cCoinBalance: parseFloat(user.cCoinBalance) - 10
-      }, { transaction: t });
-
-      // Create transaction record
-      await db.transaction.create({
-        senderId: req.userId,
-        receiverId: 1, // System user
-        amount: 10,
-        type: 'purchase',
-        description: 'Плата за создание объявления',
-        balanceBefore: parseFloat(user.cCoinBalance),
-        balanceAfter: parseFloat(user.cCoinBalance) - 10,
-        status: 'completed',
-        completedAt: new Date(),
-        referenceId: newAd.id,
-        referenceType: 'advertisement'
-      }, { transaction: t });
-
-      return newAd;
+    // Create advertisement (simplified version for testing)
+    const newAd = await Advertisement.create({
+      title,
+      description,
+      categoryId,
+      userId: req.userId,
+      price,
+      quantity,
+      location,
+      images: images || [],
+      contactInfo: contactInfo || {},
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
     });
 
+    // Deduct C-coin fee - temporarily disabled for testing
+    // await user.update({
+    //   cCoinBalance: parseFloat(user.cCoinBalance) - 10
+    // });
+
+    const advertisement = newAd;
+
+      
     res.status(201).send({
       message: "Объявление успешно создано",
       advertisement
@@ -108,8 +93,8 @@ exports.findAll = async (req, res) => {
 
     const include = [
       {
-        model: Material,
-        as: 'material',
+        model: db.materialCategories,
+        as: 'category',
         attributes: ['id', 'name']
       },
       {
@@ -121,7 +106,7 @@ exports.findAll = async (req, res) => {
 
     // Filter by category
     if (categoryId) {
-      include[0].where = { categoryId };
+      where.categoryId = categoryId;
     }
 
     // Filter by price range
@@ -161,14 +146,9 @@ exports.findOne = async (req, res) => {
     const advertisement = await Advertisement.findByPk(id, {
       include: [
         {
-          model: Material,
-          as: 'material',
-          include: [
-            {
-              model: db.materialCategory,
-              as: 'category'
-            }
-          ]
+          model: db.materialCategories,
+          as: 'category',
+          attributes: ['id', 'name', 'description']
         },
         {
           model: User,

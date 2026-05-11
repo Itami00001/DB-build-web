@@ -6,42 +6,51 @@ const path = require('path');
 // Get database statistics
 exports.getDatabaseStats = async (req, res) => {
   try {
+    console.log('🔍 Начало getDatabaseStats');
     const stats = {};
 
-    // Count records in each table
+    console.log('🔍 Считаем пользователей...');
     stats.users = await db.user.count();
-    stats.materialCategories = await db.materialCategory.count();
+    console.log('✅ Пользователи:', stats.users);
+
+    console.log('🔍 Считаем категории...');
+    stats.materialCategories = await db.materialCategories.count();
+    console.log('✅ Категории:', stats.materialCategories);
+
+    console.log('🔍 Считаем материалы...');
     stats.materials = await db.material.count();
+    console.log('✅ Материалы:', stats.materials);
+
+    console.log('🔍 Считаем объявления...');
     stats.advertisements = await db.advertisement.count();
+    console.log('✅ Объявления:', stats.advertisements);
+
+    console.log('🔍 Считаем заказы...');
     stats.orders = await db.order.count();
+    console.log('✅ Заказы:', stats.orders);
+
+    console.log('🔍 Считаем транзакции...');
     stats.transactions = await db.transaction.count();
+    console.log('✅ Транзакции:', stats.transactions);
+
+    console.log('🔍 Считаем корзины...');
     stats.carts = await db.cart.count();
+    console.log('✅ Корзины:', stats.carts);
+
+    console.log('🔍 Считаем отзывы...');
     stats.reviews = await db.review.count();
+    console.log('✅ Отзывы:', stats.reviews);
 
-    // Get financial stats
-    const totalTransactions = await db.transaction.sum('amount', {
-      where: { status: 'completed' }
-    });
-    stats.totalTransactionVolume = totalTransactions || 0;
-
+    console.log('🔍 Считаем общий баланс C-coin...');
     const totalCCoinSupply = await db.user.sum('cCoinBalance');
     stats.totalCCoinSupply = totalCCoinSupply || 0;
+    console.log('✅ Общий баланс C-coin:', stats.totalCCoinSupply);
 
-    // Get order stats
-    const totalOrders = await db.order.count();
-    const completedOrders = await db.order.count({ where: { status: 'delivered' } });
-    stats.totalOrders = totalOrders;
-    stats.completedOrders = completedOrders;
-    stats.orderCompletionRate = totalOrders > 0 ? ((completedOrders / totalOrders) * 100).toFixed(2) : 0;
-
-    // Get advertisement stats
-    const activeAds = await db.advertisement.count({ where: { status: 'active' } });
-    const soldAds = await db.advertisement.count({ where: { status: 'sold' } });
-    stats.activeAdvertisements = activeAds;
-    stats.soldAdvertisements = soldAds;
-
+    console.log('🔍 Отправляем результат...');
     res.send(stats);
+    console.log('✅ Результат отправлен');
   } catch (error) {
+    console.error('❌ Ошибка в getDatabaseStats:', error.message);
     res.status(500).send({
       message: error.message || "Ошибка получения статистики базы данных"
     });
@@ -72,10 +81,10 @@ exports.getAllTableData = async (req, res) => {
         break;
 
       case 'materialCategories':
-        const materialCategoriesData = await db.materialCategory.findAndCountAll({
+        const materialCategoriesData = await db.materialCategories.findAndCountAll({
           include: [
             {
-              model: db.materialCategory,
+              model: db.materialCategories,
               as: 'parentCategory',
               attributes: ['id', 'name']
             }
@@ -92,7 +101,7 @@ exports.getAllTableData = async (req, res) => {
         const materialsData = await db.material.findAndCountAll({
           include: [
             {
-              model: db.materialCategory,
+              model: db.materialCategories,
               as: 'category',
               attributes: ['id', 'name']
             }
@@ -109,8 +118,8 @@ exports.getAllTableData = async (req, res) => {
         const advertisementsData = await db.advertisement.findAndCountAll({
           include: [
             {
-              model: db.material,
-              as: 'material',
+              model: db.materialCategories,
+              as: 'category',
               attributes: ['id', 'name']
             },
             {
@@ -140,8 +149,8 @@ exports.getAllTableData = async (req, res) => {
               as: 'advertisement',
               include: [
                 {
-                  model: db.material,
-                  as: 'material',
+                  model: db.materialCategories,
+                  as: 'category',
                   attributes: ['id', 'name']
                 }
               ]
@@ -191,8 +200,8 @@ exports.getAllTableData = async (req, res) => {
               as: 'advertisement',
               include: [
                 {
-                  model: db.material,
-                  as: 'material',
+                  model: db.materialCategories,
+                  as: 'category',
                   attributes: ['id', 'name']
                 }
               ]
@@ -215,8 +224,8 @@ exports.getAllTableData = async (req, res) => {
               attributes: ['id', 'username', 'firstName', 'lastName']
             },
             {
-              model: db.material,
-              as: 'material',
+              model: db.materialCategories,
+              as: 'category',
               attributes: ['id', 'name']
             },
             {
@@ -273,10 +282,10 @@ exports.exportTableToPDF = async (req, res) => {
         break;
 
       case 'materialCategories':
-        data = await db.materialCategory.findAll({
+        data = await db.materialCategories.findAll({
           include: [
             {
-              model: db.materialCategory,
+              model: db.materialCategories,
               as: 'parentCategory',
               attributes: ['name']
             }
@@ -291,7 +300,7 @@ exports.exportTableToPDF = async (req, res) => {
         data = await db.material.findAll({
           include: [
             {
-              model: db.materialCategory,
+              model: db.materialCategories,
               as: 'category',
               attributes: ['name']
             }
@@ -306,8 +315,8 @@ exports.exportTableToPDF = async (req, res) => {
         data = await db.advertisement.findAll({
           include: [
             {
-              model: db.material,
-              as: 'material',
+              model: db.materialCategories,
+              as: 'category',
               attributes: ['name']
             },
             {
@@ -403,8 +412,8 @@ exports.exportTableToPDF = async (req, res) => {
               attributes: ['username']
             },
             {
-              model: db.material,
-              as: 'material',
+              model: db.materialCategories,
+              as: 'category',
               attributes: ['name']
             },
             {
@@ -428,6 +437,11 @@ exports.exportTableToPDF = async (req, res) => {
     // Create PDF
     const doc = new PDFDocument();
     const chunks = [];
+
+    // Register font with Cyrillic support
+    const fontPath = '/usr/share/fonts/dejavu/DejaVuSans.ttf';
+    doc.registerFont('MainFont', fontPath);
+    doc.font('MainFont');
 
     doc.on('data', (chunk) => {
       chunks.push(chunk);
@@ -700,7 +714,7 @@ exports.getAllMaterials = async (req, res) => {
     const materials = await db.material.findAll({
       include: [
         {
-          model: db.materialCategory,
+          model: db.materialCategories,
           as: 'category',
           attributes: ['id', 'name']
         }
@@ -720,8 +734,8 @@ exports.getAllAdvertisements = async (req, res) => {
     const advertisements = await db.advertisement.findAll({
       include: [
         {
-          model: db.material,
-          as: 'material',
+          model: db.materialCategories,
+          as: 'category',
           attributes: ['id', 'name']
         },
         {

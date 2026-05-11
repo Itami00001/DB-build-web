@@ -115,8 +115,8 @@ exports.exportAdvertisementsPDF = async (req, res) => {
           attributes: ['username']
         },
         {
-          model: db.material,
-          as: 'material',
+          model: db.materialCategories,
+          as: 'category',
           attributes: ['name']
         }
       ],
@@ -176,7 +176,7 @@ exports.exportAdvertisementsPDF = async (req, res) => {
       const rowData = [
         ad.id.toString(),
         ad.title.length > 15 ? ad.title.substring(0, 15) + '...' : ad.title,
-        ad.material ? ad.material.name : 'Не указан',
+        ad.category ? ad.category.name : 'Не указан',
         ad.price.toString(),
         ad.quantity.toString(),
         ad.status,

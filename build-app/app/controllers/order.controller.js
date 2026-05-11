@@ -24,8 +24,9 @@ exports.create = async (req, res) => {
           as: 'advertisement',
           include: [
             {
-              model: db.material,
-              as: 'material'
+              model: db.materialCategories,
+              as: 'category',
+              attributes: ['id', 'name']
             }
           ]
         }
@@ -166,8 +167,9 @@ exports.findAll = async (req, res) => {
           as: 'advertisement',
           include: [
             {
-              model: db.material,
-              as: 'material'
+              model: db.materialCategories,
+              as: 'category',
+              attributes: ['id', 'name']
             }
           ]
         }
@@ -201,14 +203,9 @@ exports.findOne = async (req, res) => {
           as: 'advertisement',
           include: [
             {
-              model: db.material,
-              as: 'material',
-              include: [
-                {
-                  model: db.materialCategory,
-                  as: 'category'
-                }
-              ]
+              model: db.materialCategories,
+              as: 'category',
+              attributes: ['id', 'name', 'description']
             },
             {
               model: db.user,
@@ -405,15 +402,9 @@ exports.getSellerOrders = async (req, res) => {
           where: { userId: req.userId },
           include: [
             {
-              model: db.material,
-              as: 'material',
-              include: [
-                {
-                  model: db.materialCategory,
-                  as: 'category',
-                  attributes: ['id', 'name']
-                }
-              ]
+              model: db.materialCategories,
+              as: 'category',
+              attributes: ['id', 'name', 'description']
             }
           ]
         },
