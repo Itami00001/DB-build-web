@@ -12,6 +12,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY ./app ./app
+COPY ./app/data ./app/data
 COPY ./public ./public
 COPY ./server.js ./
 COPY ./nodemon.json ./
