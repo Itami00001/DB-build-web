@@ -1,0 +1,15 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Build Project DB",
+      "Group": "Servers",
+      "Host": "postgresdb",
+      "Port": 5432,
+      "MaintenanceDB": "build_project_db",
+      "Username": "build_user",
+      "PassFile": "/pgpass",
+      "SSLMode": "prefer",
+      "Comment": "Build Project PostgreSQL Database"
+    }
+  }
+}
